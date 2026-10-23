@@ -1,0 +1,8 @@
+{
+  "name": "Seolah إدارة التحويلات المالية الذكية",
+  "description": "نظام احترافي متكامل لإدارة التحويلات البنكية والمحافظ الالكترونية ",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
