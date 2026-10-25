@@ -169,3 +169,23 @@ export interface DashboardStats {
   }[];
   recentTransfers: Transfer[];
 }
+
+export interface OperationSession {
+  id: string;
+  sessionNumber: number;
+  sequentialOpNumber?: number;
+  mode: 'transfer' | 'receive';
+  sourceLineId?: string;
+  sourceLineName?: string;
+  transferType?: TransferType;
+  recipientType?: 'wallet' | 'bank_account';
+  recipientNumber: string;
+  recipientName: string;
+  destinationBankOrWallet: string;
+  amount: string;
+  fee: string;
+  overrideLimit: boolean;
+  notes?: string;
+  createdAt: number;
+  updatedAt: number;
+}

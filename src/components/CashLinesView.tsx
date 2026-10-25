@@ -34,7 +34,6 @@ import {
   Building2,
   Globe
 } from 'lucide-react';
-import { VodafoneVipBrowserModal } from './VodafoneVipBrowserModal';
 
 interface CashLinesViewProps {
   onInitiateTransfer: (lineId: string) => void;
@@ -53,11 +52,10 @@ export const CashLinesView: React.FC<CashLinesViewProps> = ({
   const [lines, setLines] = useState<CashLine[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState<'all' | 'vip' | 'vodafone' | 'orange' | 'etisalat' | 'we' | 'banks'>('all');
+  const [selectedCategory, setSelectedCategory] = useState<'all' | 'vodafone' | 'orange' | 'etisalat' | 'we' | 'banks'>('all');
 
   // Modal State for Add / Edit
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedVipLineForBrowser, setSelectedVipLineForBrowser] = useState<CashLine | null>(null);
   const [editingLine, setEditingLine] = useState<CashLine | null>(null);
   const [formName, setFormName] = useState('');
   const [formProvider, setFormProvider] = useState<ProviderType>('vodafone');
@@ -87,7 +85,7 @@ export const CashLinesView: React.FC<CashLinesViewProps> = ({
   const [isInterTransferModalOpen, setIsInterTransferModalOpen] = useState<boolean>(false);
 
   const isSourceCashWallet = (provider?: string) => {
-    return provider === 'vodafone' || provider === 'vodafone_vip' || provider === 'orange' || provider === 'etisalat' || provider === 'we';
+    return provider === 'vodafone' || provider === 'orange' || provider === 'etisalat' || provider === 'we';
   };
   const isSourceInstaPay = (provider?: string) => {
     return provider === 'instapay';
@@ -227,9 +225,6 @@ export const CashLinesView: React.FC<CashLinesViewProps> = ({
 
     if (!matchesSearch) return false;
 
-    if (selectedCategory === 'vip') {
-      return l.provider === 'vodafone_vip' || l.isVip;
-    }
     if (selectedCategory === 'vodafone') {
       return l.provider === 'vodafone';
     }
@@ -243,7 +238,7 @@ export const CashLinesView: React.FC<CashLinesViewProps> = ({
       return l.provider === 'we';
     }
     if (selectedCategory === 'banks') {
-      return l.provider !== 'vodafone' && l.provider !== 'vodafone_vip' && l.provider !== 'orange' && l.provider !== 'etisalat' && l.provider !== 'we';
+      return l.provider !== 'vodafone' && l.provider !== 'orange' && l.provider !== 'etisalat' && l.provider !== 'we';
     }
 
     return true;
@@ -383,26 +378,26 @@ export const CashLinesView: React.FC<CashLinesViewProps> = ({
   const totalLiquidity = lines.reduce((sum, l) => sum + (l.balance || 0), 0);
 
   return (
-    <div className="space-y-6 pb-12 font-sans selection:bg-emerald-500 selection:text-white" dir="rtl">
+    <div className="space-y-3 pb-8 font-sans selection:bg-emerald-500 selection:text-white" dir="rtl">
       
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-slate-900/60 p-5 rounded-3xl border border-slate-800">
+      {/* Top Header - Compact & Balanced */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-slate-900/60 p-3.5 sm:p-4 rounded-2xl border border-slate-800">
         <div>
-          <h1 className="text-2xl font-black text-white flex items-center gap-2">
+          <h1 className="text-lg sm:text-xl font-black text-white flex items-center gap-2">
             إدارة خطوط الكاش والمحافظ
-            <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 font-mono font-semibold">
+            <span className="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-mono font-semibold">
               {lines.length} خط مسجل
             </span>
           </h1>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-[11px] text-slate-400 mt-0.5">
             متابعة السيولة النقدية، الحدود اليومية والشهرية، وتنفيذ التحويلات السريعة لكل محفظة
           </p>
         </div>
 
-        <div className="flex items-center gap-3 w-full sm:w-auto">
+        <div className="flex items-center gap-2.5 w-full sm:w-auto">
           <button
             onClick={() => loadLines()}
-            className="p-2.5 bg-slate-800/80 hover:bg-slate-700 text-slate-300 rounded-xl transition border border-slate-700/60"
+            className="p-2 bg-slate-800/80 hover:bg-slate-700 text-slate-300 rounded-xl transition border border-slate-700/60 cursor-pointer"
             title="تحديث القائمة"
           >
             <RefreshCw className="w-4 h-4" />
@@ -411,7 +406,7 @@ export const CashLinesView: React.FC<CashLinesViewProps> = ({
           {canManageLines && (
             <button
               onClick={openAddModal}
-              className="flex-1 sm:flex-none px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold rounded-xl shadow-lg shadow-emerald-600/25 flex items-center justify-center gap-2 transition duration-200 cursor-pointer text-sm"
+              className="flex-1 sm:flex-none px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold rounded-xl shadow-md shadow-emerald-600/20 flex items-center justify-center gap-1.5 transition duration-200 cursor-pointer text-xs sm:text-sm"
             >
               <Plus className="w-4 h-4" />
               <span>إضافة خط أو محفظة جديدة</span>
@@ -420,14 +415,14 @@ export const CashLinesView: React.FC<CashLinesViewProps> = ({
         </div>
       </div>
 
-      {/* Category Tabs with Prominent VIP Category */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+      {/* Category Tabs - Compact & Tight */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
         <button
           type="button"
           onClick={() => setSelectedCategory('all')}
-          className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
+          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
             selectedCategory === 'all'
-              ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
+              ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/20'
               : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800'
           }`}
         >
@@ -437,32 +432,12 @@ export const CashLinesView: React.FC<CashLinesViewProps> = ({
           </span>
         </button>
 
-        {/* Dedicated VIP Tab as requested: "قم باضافه خانه داخل خطوط الكاش والمحافظ باسم Vip" */}
-        <button
-          type="button"
-          onClick={() => setSelectedCategory('vip')}
-          className={`px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-2 shrink-0 cursor-pointer ${
-            selectedCategory === 'vip'
-              ? 'bg-gradient-to-r from-red-600 via-amber-600 to-amber-500 text-white shadow-lg shadow-amber-500/25 ring-2 ring-amber-400/50'
-              : 'bg-gradient-to-r from-red-950/70 to-amber-950/60 text-amber-300 hover:text-white hover:border-amber-500/60 border border-amber-500/40 shadow-xs'
-          }`}
-        >
-          <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
-          <span>خطوط فودافون VIP</span>
-          <span className="px-1.5 py-0.2 bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 text-[10px] font-black rounded-md shadow-xs">
-            VIP
-          </span>
-          <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/30 font-mono font-bold text-white">
-            {lines.filter((l) => l.provider === 'vodafone_vip' || l.isVip).length}
-          </span>
-        </button>
-
         <button
           type="button"
           onClick={() => setSelectedCategory('vodafone')}
-          className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
+          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
             selectedCategory === 'vodafone'
-              ? 'bg-red-600 text-white shadow-md shadow-red-600/20'
+              ? 'bg-red-600 text-white shadow-sm shadow-red-600/20'
               : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800'
           }`}
         >
@@ -476,9 +451,9 @@ export const CashLinesView: React.FC<CashLinesViewProps> = ({
         <button
           type="button"
           onClick={() => setSelectedCategory('orange')}
-          className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
+          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
             selectedCategory === 'orange'
-              ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20'
+              ? 'bg-orange-500 text-white shadow-sm shadow-orange-500/20'
               : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800'
           }`}
         >
@@ -492,9 +467,9 @@ export const CashLinesView: React.FC<CashLinesViewProps> = ({
         <button
           type="button"
           onClick={() => setSelectedCategory('etisalat')}
-          className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
+          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
             selectedCategory === 'etisalat'
-              ? 'bg-lime-600 text-white shadow-md shadow-lime-600/20'
+              ? 'bg-lime-600 text-white shadow-sm shadow-lime-600/20'
               : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800'
           }`}
         >
@@ -508,9 +483,9 @@ export const CashLinesView: React.FC<CashLinesViewProps> = ({
         <button
           type="button"
           onClick={() => setSelectedCategory('we')}
-          className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
+          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
             selectedCategory === 'we'
-              ? 'bg-purple-600 text-white shadow-md shadow-purple-600/20'
+              ? 'bg-purple-600 text-white shadow-sm shadow-purple-600/20'
               : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800'
           }`}
         >
@@ -524,34 +499,32 @@ export const CashLinesView: React.FC<CashLinesViewProps> = ({
         <button
           type="button"
           onClick={() => setSelectedCategory('banks')}
-          className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
+          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
             selectedCategory === 'banks'
-              ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
+              ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/20'
               : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800'
           }`}
         >
           <span className="w-2 h-2 rounded-full bg-blue-500" />
           <span>إنستاباي والبنوك</span>
           <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/20 font-mono font-normal">
-            {lines.filter((l) => l.provider !== 'vodafone' && l.provider !== 'vodafone_vip' && l.provider !== 'orange' && l.provider !== 'etisalat' && l.provider !== 'we').length}
+            {lines.filter((l) => l.provider !== 'vodafone' && l.provider !== 'orange' && l.provider !== 'etisalat' && l.provider !== 'we').length}
           </span>
         </button>
       </div>
 
-      {/* Search Bar */}
-      <div className="p-4 sm:p-5 rounded-2xl bg-slate-900/80 border border-slate-800">
-        <div className="relative w-full">
-          <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-slate-400">
-            <Search className="w-4 h-4" />
-          </div>
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="بحث برقم الهاتف، اسم الخط، أو المالك..."
-            className="w-full pr-10 pl-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 leading-normal"
-          />
+      {/* Search Bar - Sleek, Flush & Compact (Zero wasted space) */}
+      <div className="relative w-full">
+        <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-slate-400">
+          <Search className="w-4 h-4" />
         </div>
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="بحث برقم الهاتف، اسم الخط، أو المالك..."
+          className="w-full pr-10 pl-3 py-2 bg-slate-900/90 border border-slate-800 rounded-xl text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 leading-normal shadow-xs"
+        />
       </div>
 
       {/* Cash Line Cards Grid */}
@@ -580,32 +553,15 @@ export const CashLinesView: React.FC<CashLinesViewProps> = ({
             const isHighDaily = dailyPercent >= line.warningThresholdPercent;
             const isHighMonthly = monthlyPercent >= line.warningThresholdPercent;
 
-            const isVipLine = line.provider === 'vodafone_vip';
-            const isVipUnsynced = isVipLine && !line.isSynced;
-
             return (
               <div
                 key={line.id}
-                onClick={() => {
-                  if (isVipUnsynced) {
-                    setSelectedVipLineForBrowser(line);
-                  } else {
-                    onViewLineHistory(line.id);
-                  }
-                }}
-                className={`rounded-3xl transition-all duration-200 shadow-lg flex flex-col justify-between overflow-hidden group cursor-pointer ${
-                  isVipLine
-                    ? 'bg-slate-900/90 border-2 border-amber-500/40 hover:border-amber-400 hover:shadow-amber-500/15'
-                    : 'bg-slate-900/80 border border-slate-800 hover:border-emerald-500/50 hover:bg-slate-900/95 hover:shadow-emerald-500/10'
-                }`}
-                title={isVipUnsynced ? "انقر لفتح بوابة فودافون والمزامنة" : "انقر لعرض تفاصيل وسجل هذا الخط"}
+                onClick={() => onViewLineHistory(line.id)}
+                className="rounded-3xl transition-all duration-200 shadow-lg flex flex-col justify-between overflow-hidden group cursor-pointer bg-slate-900/80 border border-slate-800 hover:border-emerald-500/50 hover:bg-slate-900/95 hover:shadow-emerald-500/10"
+                title="انقر لعرض تفاصيل وسجل هذا الخط"
               >
                 {/* Card Top: Provider Icon & Provider Name + Account Holder on Right, Status Badge & Phone Number on Left */}
-                <div className={`p-4 sm:p-5 border-b ${
-                  isVipLine 
-                    ? 'bg-gradient-to-r from-red-950/70 via-slate-950/80 to-amber-950/50 border-amber-500/30' 
-                    : 'bg-slate-950/60 border-slate-800/80'
-                }`}>
+                <div className="p-4 sm:p-5 border-b bg-slate-950/60 border-slate-800/80">
                   <div className="flex items-start justify-between gap-3">
                     {/* Right: Icon + Provider Name & Account Holder Name */}
                     <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
@@ -628,47 +584,6 @@ export const CashLinesView: React.FC<CashLinesViewProps> = ({
                     {/* Left: Status Badge on Top, Phone/Account Number below it */}
                     <div className="shrink-0 flex flex-col items-end gap-1.5">
                       <div className="flex items-center gap-1.5 flex-wrap justify-end">
-                        {isVipLine && (
-                          <div className="shrink-0">
-                            {(!line.isSynced || line.syncStatus === 'unlinked') && (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700 whitespace-nowrap shadow-xs">
-                                <span className="w-1.5 h-1.5 rounded-full bg-slate-400 shrink-0" />
-                                <span>غير مرتبط</span>
-                              </span>
-                            )}
-                            {line.syncStatus === 'awaiting_login' && (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30 whitespace-nowrap shadow-xs">
-                                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse shrink-0" />
-                                <span>بانتظار تسجيل الدخول</span>
-                              </span>
-                            )}
-                            {line.syncStatus === 'connecting' && (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/30 whitespace-nowrap shadow-xs">
-                                <RefreshCw className="w-2.5 h-2.5 animate-spin shrink-0 text-blue-400" />
-                                <span>جارٍ جلب البيانات</span>
-                              </span>
-                            )}
-                            {line.syncStatus === 'synced' && line.isSynced && (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 whitespace-nowrap shadow-xs shadow-emerald-950/40">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-                                <span>تمت المزامنة بنجاح</span>
-                              </span>
-                            )}
-                            {line.syncStatus === 'failed' && (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-400 border border-rose-500/30 whitespace-nowrap shadow-xs">
-                                <AlertCircle className="w-2.5 h-2.5 text-rose-400 shrink-0" />
-                                <span>تعذرت المزامنة</span>
-                              </span>
-                            )}
-                            {line.syncStatus === 'expired' && (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/10 text-purple-400 border border-purple-500/30 whitespace-nowrap shadow-xs">
-                                <span className="w-1.5 h-1.5 rounded-full bg-purple-400 shrink-0" />
-                                <span>انتهت صلاحية الجلسة</span>
-                              </span>
-                            )}
-                          </div>
-                        )}
-
                         {line.status === 'active' && (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 whitespace-nowrap shrink-0 shadow-sm shadow-emerald-950/40">
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
@@ -700,142 +615,77 @@ export const CashLinesView: React.FC<CashLinesViewProps> = ({
                 {/* Card Middle: Liquidity Balance & Limit Progress */}
                 <div className="p-4 sm:p-5 space-y-3.5">
                   {/* Liquidity / Balance Box */}
-                  {isVipUnsynced ? (
-                    <div className="p-3 sm:p-3.5 rounded-2xl bg-slate-950/90 border border-amber-500/20 flex items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <span className="text-[11px] text-slate-400 flex items-center gap-1.5 font-medium">
-                          <Coins className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                          السيولة المتاحة حالياً
-                        </span>
-                        <span className="text-base sm:text-lg font-bold text-slate-400 mt-1 block">
-                          — <span className="text-xs font-sans text-amber-400/90 font-normal">(لم تتم المزامنة بعد)</span>
-                        </span>
-                      </div>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedVipLineForBrowser(line);
-                        }}
-                        className="px-2.5 py-1 bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white rounded-xl text-[11px] font-bold shadow-xs cursor-pointer whitespace-nowrap transition active:scale-95"
-                      >
-                        ربط الحساب
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="p-3 sm:p-3.5 rounded-2xl bg-slate-950/90 border border-slate-800 flex items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <span className="text-[11px] text-slate-400 flex items-center gap-1.5 font-medium">
-                          <Coins className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                          السيولة المتاحة حالياً
-                        </span>
-                        <span className="text-lg sm:text-xl font-mono font-black text-white mt-0.5 block truncate">
-                          {formatAmount(line.balance)} <span className="text-xs font-sans text-slate-400">ج.م</span>
-                        </span>
-                      </div>
-                      <div className="text-left text-xs text-slate-400 font-sans shrink-0 space-y-0.5">
-                        <div className="text-[11px]"><strong className="text-slate-200 font-mono font-bold">{formatCount(line.todayCount || 0)}</strong> عملية اليوم</div>
-                        <div className="text-[10px] text-slate-500"><strong className="text-slate-300 font-mono font-bold">{formatCount(line.monthCount || 0)}</strong> هذا الشهر</div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Daily & Monthly Limit Progress */}
-                  {isVipUnsynced ? (
-                    <div className="p-3 rounded-2xl bg-slate-950/60 border border-dashed border-slate-800 text-slate-400 text-xs space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <span className="text-slate-300 font-medium">الحدود المالية (اليومي والشهري):</span>
-                        <span className="text-amber-400 font-bold text-[10px]">لم تتم المزامنة بعد</span>
-                      </div>
-                      <p className="text-[10.5px] text-slate-500 leading-relaxed">
-                        الحقول المالية غير مفعلة وتظهر بعلامة «—» لحين فتح بوابة فودافون الرسمية وإتمام المزامنة الفعلية للبيانات.
-                      </p>
-                    </div>
-                  ) : (
-                    <>
-                      {/* Daily Limit Progress */}
-                      <div className="space-y-1.5">
-                        <div className="flex items-center justify-between text-xs font-sans">
-                          <span className="text-slate-400 font-medium">الحد اليومي:</span>
-                          <span className="text-slate-300 text-[11px] sm:text-xs">
-                            مستهلك: <strong className="text-white font-mono">{formatAmount(todayUsed)}</strong> / <span className="font-mono">{formatAmount(line.dailyLimit)}</span> ج.م
-                          </span>
-                        </div>
-                        <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
-                          <div
-                            className={`h-full rounded-full transition-all duration-500 ${
-                              dailyPercent >= 90 ? 'bg-rose-500' : dailyPercent >= 80 ? 'bg-amber-500' : 'bg-emerald-500'
-                            }`}
-                            style={{ width: `${Math.min(100, dailyPercent)}%` }}
-                          />
-                        </div>
-                        <div className="flex items-center justify-between text-[11px] font-sans">
-                          <span className={isHighDaily ? 'text-amber-400 font-bold' : 'text-slate-400'}>
-                            نسبة الاستهلاك: <strong className="font-mono">{dailyPercent}%</strong>
-                          </span>
-                          <span className="text-emerald-400 font-semibold">
-                            المتبقي اليوم: <span className="font-mono">{formatAmount(remainingDaily)}</span> ج.م
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Monthly Limit Progress */}
-                      <div className="space-y-1.5 pt-2 border-t border-slate-800/80">
-                        <div className="flex items-center justify-between text-xs font-sans">
-                          <span className="text-slate-400 font-medium">الحد الشهري:</span>
-                          <span className="text-slate-300 text-[11px] sm:text-xs">
-                            مستهلك: <strong className="text-white font-mono">{formatAmount(monthUsed)}</strong> / <span className="font-mono">{formatAmount(line.monthlyLimit)}</span> ج.م
-                          </span>
-                        </div>
-                        <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
-                          <div
-                            className={`h-full rounded-full transition-all duration-500 ${
-                              monthlyPercent >= 90 ? 'bg-rose-500' : monthlyPercent >= 80 ? 'bg-amber-500' : 'bg-cyan-500'
-                            }`}
-                            style={{ width: `${Math.min(100, monthlyPercent)}%` }}
-                          />
-                        </div>
-                        <div className="flex items-center justify-between text-[11px] font-sans">
-                          <span className={isHighMonthly ? 'text-amber-400 font-bold' : 'text-slate-400'}>
-                            نسبة الاستهلاك: <strong className="font-mono">{monthlyPercent}%</strong>
-                          </span>
-                          <span className="text-cyan-400 font-semibold">
-                            المتبقي هذا الشهر: <span className="font-mono">{formatAmount(remainingMonthly)}</span> ج.م
-                          </span>
-                        </div>
-                      </div>
-                    </>
-                  )}
-
-                  {/* Last Sync Info for VIP */}
-                  {isVipLine && line.isSynced && line.lastSyncAt && (
-                    <div className="pt-2 border-t border-slate-800/60 flex items-center justify-between text-[10px] text-emerald-400">
-                      <span>آخر مزامنة ناجحة:</span>
-                      <span className="font-mono font-bold" dir="ltr">
-                        {new Date(line.lastSyncAt).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
+                  <div className="p-3 sm:p-3.5 rounded-2xl bg-slate-950/90 border border-slate-800 flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <span className="text-[11px] text-slate-400 flex items-center gap-1.5 font-medium">
+                        <Coins className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                        السيولة المتاحة حالياً
+                      </span>
+                      <span className="text-lg sm:text-xl font-mono font-black text-white mt-0.5 block truncate">
+                        {formatAmount(line.balance)} <span className="text-xs font-sans text-slate-400">ج.م</span>
                       </span>
                     </div>
-                  )}
+                    <div className="text-left text-xs text-slate-400 font-sans shrink-0 space-y-0.5">
+                      <div className="text-[11px]"><strong className="text-slate-200 font-mono font-bold">{formatCount(line.todayCount || 0)}</strong> عملية اليوم</div>
+                      <div className="text-[10px] text-slate-500"><strong className="text-slate-300 font-mono font-bold">{formatCount(line.monthCount || 0)}</strong> هذا الشهر</div>
+                    </div>
+                  </div>
+
+                  {/* Daily Limit Progress */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between text-xs font-sans">
+                      <span className="text-slate-400 font-medium">الحد اليومي:</span>
+                      <span className="text-slate-300 text-[11px] sm:text-xs">
+                        مستهلك: <strong className="text-white font-mono">{formatAmount(todayUsed)}</strong> / <span className="font-mono">{formatAmount(line.dailyLimit)}</span> ج.م
+                      </span>
+                    </div>
+                    <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ${
+                          dailyPercent >= 90 ? 'bg-rose-500' : dailyPercent >= 80 ? 'bg-amber-500' : 'bg-emerald-500'
+                        }`}
+                        style={{ width: `${Math.min(100, dailyPercent)}%` }}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between text-[11px] font-sans">
+                      <span className={isHighDaily ? 'text-amber-400 font-bold' : 'text-slate-400'}>
+                        نسبة الاستهلاك: <strong className="font-mono">{dailyPercent}%</strong>
+                      </span>
+                      <span className="text-emerald-400 font-semibold">
+                        المتبقي اليوم: <span className="font-mono">{formatAmount(remainingDaily)}</span> ج.م
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Monthly Limit Progress */}
+                  <div className="space-y-1.5 pt-2 border-t border-slate-800/80">
+                    <div className="flex items-center justify-between text-xs font-sans">
+                      <span className="text-slate-400 font-medium">الحد الشهري:</span>
+                      <span className="text-slate-300 text-[11px] sm:text-xs">
+                        مستهلك: <strong className="text-white font-mono">{formatAmount(monthUsed)}</strong> / <span className="font-mono">{formatAmount(line.monthlyLimit)}</span> ج.م
+                      </span>
+                    </div>
+                    <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ${
+                          monthlyPercent >= 90 ? 'bg-rose-500' : monthlyPercent >= 80 ? 'bg-amber-500' : 'bg-cyan-500'
+                        }`}
+                        style={{ width: `${Math.min(100, monthlyPercent)}%` }}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between text-[11px] font-sans">
+                      <span className={isHighMonthly ? 'text-amber-400 font-bold' : 'text-slate-400'}>
+                        نسبة الاستهلاك: <strong className="font-mono">{monthlyPercent}%</strong>
+                      </span>
+                      <span className="text-cyan-400 font-semibold">
+                        المتبقي هذا الشهر: <span className="font-mono">{formatAmount(remainingMonthly)}</span> ج.م
+                      </span>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Card Actions Bottom: Perfectly organized without any overlapping */}
                 <div className="p-3.5 sm:p-4 bg-slate-950/95 border-t border-slate-800/80 space-y-2.5">
-                  {/* VIP Exclusive Gateway & Sync Button */}
-                  {isVipLine && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedVipLineForBrowser(line);
-                      }}
-                      className={`w-full py-2.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border transition cursor-pointer shadow-md ${
-                        line.isSynced
-                          ? 'bg-gradient-to-r from-red-950/90 via-amber-950/80 to-red-950/90 hover:bg-slate-800 text-amber-300 border-amber-500/40'
-                          : 'bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white border-amber-300/40 shadow-red-600/20 active:scale-[0.98]'
-                      }`}
-                    >
-                      <Globe className="w-4 h-4 shrink-0 text-amber-300" />
-                      <span>{line.isSynced ? 'بوابة فودافون VIP والمزامنة المباشرة' : 'ربط الحساب وبوابة فودافون الرسمية'}</span>
-                    </button>
-                  )}
 
                   {/* Tier 1: Primary Money Operation Buttons */}
                   <div className="grid grid-cols-2 gap-2">
@@ -1076,19 +926,19 @@ export const CashLinesView: React.FC<CashLinesViewProps> = ({
                       <button
                         type="button"
                         onClick={() => onPrintReceipt(interSuccessTransfer)}
-                        className="flex-1 sm:flex-none px-4 py-2 bg-white text-slate-950 hover:bg-slate-100 font-bold rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg transition cursor-pointer"
+                        className="flex-1 sm:flex-none px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/30 border border-emerald-400/40 transition cursor-pointer active:scale-95"
                       >
-                        <Printer className="w-4 h-4 text-emerald-600" />
-                        <span>طباعة إيصال التحويل</span>
+                        <Printer className="w-4 h-4 text-white" />
+                        <span className="text-white font-bold">طباعة إيصال التحويل</span>
                       </button>
                     )}
                     <button
                       type="button"
                       onClick={() => setInterSuccessTransfer(null)}
-                      className="flex-1 sm:flex-none px-3.5 py-2 bg-emerald-900/80 hover:bg-emerald-800 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition cursor-pointer"
+                      className="flex-1 sm:flex-none px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-blue-600/30 border border-blue-400/40 transition cursor-pointer active:scale-95"
                     >
-                      <RotateCcw className="w-4 h-4" />
-                      <span>تحويل جديد</span>
+                      <RotateCcw className="w-4 h-4 text-white" />
+                      <span className="text-white font-bold">تحويل جديد</span>
                     </button>
                   </div>
                 </div>

@@ -1896,6 +1896,35 @@ async function startServer() {
     return res.json({ success: true, message: 'تمت استعادة البيانات بنجاح' });
   });
 
+  // 8.1. Factory Reset Endpoint
+  app.post('/api/factory-reset', authMiddleware, requireRole(['admin']), (req: Request, res: Response) => {
+    const user = (req as any).user as User;
+    const now = new Date().toISOString();
+
+    const cleanSeed = getInitialSeed();
+    cleanSeed.transfers = []; // Completely clean transfers - zero operations as if brand new
+    cleanSeed.auditLogs = [
+      {
+        id: `aud_reset_${Date.now()}`,
+        timestamp: now,
+        operatorId: user?.id || 'usr_admin',
+        operatorName: user?.fullName || 'أحمد محمد',
+        action: 'إعادة ضبط المصنع (Factory Reset)',
+        details: 'تم مسح كافة البيانات والسجلات والعمليات بالكامل وإعادة البرنامج إلى حالة المصنع الأولى',
+        ipAddress: req.ip,
+      },
+    ];
+
+    db = cleanSeed;
+    saveDatabaseSync();
+
+    return res.json({
+      success: true,
+      message: 'تمت إعادة ضبط المصنع بنجاح، ومسح كافة العمليات والسجلات كما لو كان البرنامج يعمل لأول مرة',
+      timestamp: now,
+    });
+  });
+
   // Desktop Package Download Endpoint
   app.get('/api/download/desktop-app', (req: Request, res: Response) => {
     const zipPath = path.join(__dirname, 'dist-electron', 'CashManagementSystem-Windows-x64.zip');
@@ -1922,7 +1951,10 @@ async function startServer() {
   } else {
     const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: { 
+        middlewareMode: true,
+        hmr: false,
+      },
       appType: 'spa',
     });
     app.use(vite.middlewares);

@@ -141,7 +141,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   ];
 
   return (
-    <div className="h-screen w-screen overflow-hidden bg-slate-950 text-slate-100 flex font-sans selection:bg-emerald-500 selection:text-white" dir="rtl">
+    <div className="fixed inset-0 w-full h-full overflow-hidden bg-slate-950 text-slate-100 flex font-sans selection:bg-emerald-500 selection:text-white" dir="rtl">
       
       {/* Sidebar (Desktop & Tablet) - 100% Fixed and Anchored, never moves up or down */}
       <aside className="hidden lg:flex flex-col w-72 h-full bg-slate-900 border-l border-slate-800 shrink-0 select-none z-30">
@@ -198,8 +198,8 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       {/* Main Content Area - Full height with fixed header and scrollable body */}
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
         
-        {/* Top Bar Header - 100% Fixed and Anchored at Top, never moves up or down */}
-        <header className="shrink-0 min-h-16 sm:h-20 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-3 sm:px-6 lg:px-8 py-2 sm:py-0 flex flex-wrap items-center justify-between z-30 gap-2">
+        {/* Top Bar Header - 100% Fixed and Anchored at Top, compact height without empty gaps */}
+        <header className="shrink-0 h-14 sm:h-16 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-3 sm:px-5 lg:px-6 flex items-center justify-between z-30 gap-2">
           
           {/* Right Section: Mobile toggle & Date / Live clock */}
           <div className="flex items-center gap-2 sm:gap-4 shrink-0">
@@ -222,15 +222,15 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             {/* Quick Receive Money Action Button */}
             <button
               onClick={() => {
-                scrollToTop();
                 if (onOpenReceiveMoney) onOpenReceiveMoney();
                 else onOpenNewTransfer();
-                requestAnimationFrame(scrollToTop);
-                setTimeout(scrollToTop, 20);
-                setTimeout(scrollToTop, 60);
               }}
-              className="hidden md:flex px-2.5 sm:px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-bold rounded-xl text-xs items-center gap-1.5 sm:gap-2 shadow-md shadow-blue-600/20 cursor-pointer transition active:scale-95 whitespace-nowrap shrink-0"
-              title="استلام أموال جديد"
+              className={`flex px-2.5 sm:px-4 py-2 text-white font-bold rounded-xl text-xs sm:text-sm items-center gap-1.5 sm:gap-2 shadow-md cursor-pointer transition active:scale-95 whitespace-nowrap shrink-0 ${
+                currentTab === 'receive_money'
+                  ? 'bg-gradient-to-r from-blue-600 to-cyan-500 ring-2 ring-blue-400 shadow-blue-600/40'
+                  : 'bg-gradient-to-r from-blue-600/90 to-cyan-500/90 hover:from-blue-600 hover:to-cyan-500 shadow-blue-600/20'
+              }`}
+              title="صفحة استلام أموال"
             >
               <ArrowDownLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
               <span>استلام</span>
@@ -239,17 +239,17 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             {/* Quick New Transfer Action Button */}
             <button
               onClick={() => {
-                scrollToTop();
                 onOpenNewTransfer();
-                requestAnimationFrame(scrollToTop);
-                setTimeout(scrollToTop, 20);
-                setTimeout(scrollToTop, 60);
               }}
-              className="flex px-2.5 sm:px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold rounded-xl text-xs items-center gap-1.5 sm:gap-2 shadow-md shadow-emerald-600/20 cursor-pointer transition active:scale-95 whitespace-nowrap shrink-0"
-              title="تحويل صادر جديد"
+              className={`flex px-2.5 sm:px-4 py-2 text-white font-bold rounded-xl text-xs sm:text-sm items-center gap-1.5 sm:gap-2 shadow-md cursor-pointer transition active:scale-95 whitespace-nowrap shrink-0 ${
+                currentTab === 'new_transfer'
+                  ? 'bg-gradient-to-r from-emerald-600 to-teal-500 ring-2 ring-emerald-400 shadow-emerald-600/40'
+                  : 'bg-gradient-to-r from-emerald-600/90 to-teal-500/90 hover:from-emerald-600 hover:to-teal-400 shadow-emerald-600/20'
+              }`}
+              title="صفحة تحويل أموال"
             >
               <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-              <span>تحويل صادر</span>
+              <span>تحويل</span>
             </button>
 
             {/* Notifications Bell Icon */}
@@ -375,7 +375,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         )}
 
         {/* Viewport Content - Only this area scrolls vertically */}
-        <main ref={mainContentRef} className="flex-1 overflow-y-auto p-2 sm:p-4 lg:p-5 max-w-[1700px] w-full min-w-0">
+        <main ref={mainContentRef} className="flex-1 overflow-y-auto p-2.5 sm:p-3.5 lg:p-4 w-full min-w-0">
           {children}
         </main>
 

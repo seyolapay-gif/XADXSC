@@ -3,13 +3,13 @@
  * and converts any Eastern Arabic digits (٠١٢٣٤٥٦٧٨٩) to English digits.
  */
 
-// Convert Eastern Arabic numerals (٠-٩) to Western/English numerals (0-9)
+// Convert Eastern Arabic numerals (٠-٩) and Persian numerals (۰-۹) to Western/English numerals (0-9)
 export function toEnglishDigits(str: string | number | null | undefined): string {
   if (str === null || str === undefined) return '';
   const s = String(str);
-  return s.replace(/[٠-٩]/g, (char) => {
-    return String('0123456789'[char.charCodeAt(0) - 1632]);
-  });
+  return s
+    .replace(/[٠-٩]/g, (char) => String('0123456789'[char.charCodeAt(0) - 1632]))
+    .replace(/[۰-۹]/g, (char) => String('0123456789'[char.charCodeAt(0) - 1776]));
 }
 
 // Convert input value to number safely using English digits

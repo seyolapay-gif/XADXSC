@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { TypographyProvider } from './context/TypographyContext';
 import { LoginView } from './components/LoginView';
 import { DashboardLayout } from './components/DashboardLayout';
 import { DashboardView } from './components/DashboardView';
@@ -16,7 +17,9 @@ import { BackupRestoreView } from './components/BackupRestoreView';
 import { ReceiptModal } from './components/ReceiptModal';
 import { TransferDetailsModal } from './components/TransferDetailsModal';
 import { OfflineIndicator } from './components/OfflineIndicator';
-import { Transfer } from './types';
+import { MinimizedOperationsBar } from './components/MinimizedOperationsBar';
+import { Transfer, OperationSession } from './types';
+import { api } from './services/api';
 import { RefreshCw, AlertTriangle } from 'lucide-react';
 
 interface ErrorBoundaryProps {
@@ -78,6 +81,52 @@ const MainAppContent: React.FC = () => {
   const [selectedDetailsTransfer, setSelectedDetailsTransfer] = useState<Transfer | null>(null);
   const [transferMode, setTransferMode] = useState<'transfer' | 'receive'>('transfer');
 
+  // Multi-Operation Sessions state (support > 2 concurrent operations)
+  const [sessionsCounter, setSessionsCounter] = useState(1);
+  const [activeSession, setActiveSession] = useState<OperationSession | null>(null);
+  const [minimizedSessions, setMinimizedSessions] = useState<OperationSession[]>([]);
+
+  const buildNewSession = (mode: 'transfer' | 'receive' = 'transfer', lineId?: string): OperationSession => {
+    const num = sessionsCounter;
+    setSessionsCounter(prev => prev + 1);
+    return {
+      id: `op_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      sessionNumber: num,
+      mode,
+      sourceLineId: lineId,
+      transferType: 'cash_wallet',
+      recipientType: 'wallet',
+      recipientNumber: '',
+      recipientName: '',
+      destinationBankOrWallet: 'فودافون كاش',
+      amount: '',
+      fee: '0',
+      overrideLimit: false,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+  };
+
+  const hasSessionContent = (s: OperationSession | null): boolean => {
+    if (!s) return false;
+    return Boolean(
+      (s.recipientNumber && s.recipientNumber.trim().length > 0) ||
+      (s.amount && Number(s.amount) > 0) ||
+      (s.recipientName && s.recipientName.trim().length > 0)
+    );
+  };
+
+  // Helper to get next daily operation sequence number following today's successful operations
+  const getNextSequentialOpNumber = (currentList: OperationSession[], currentSessionId?: string): number => {
+    const todayCompletedCount = api.getTodaySuccessfulTransfersCount();
+    const unnamedCount = currentList.filter(s => {
+      if (s.id === currentSessionId) return false;
+      const name = (s.recipientName || '').trim();
+      return !name || name === 'عميل نقدي' || name === 'عميل مودع';
+    }).length;
+    return todayCompletedCount + unnamedCount + 1;
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-slate-400 gap-3" dir="rtl">
@@ -92,15 +141,123 @@ const MainAppContent: React.FC = () => {
   }
 
   const handleOpenNewTransfer = (lineId?: string) => {
-    setInitialLineForTransfer(lineId);
+    setFilterLineIdForHistory(undefined);
     setTransferMode('transfer');
     setCurrentTab('new_transfer');
+
+    // If active session exists on transfer mode and without explicit new lineId requested, keep it
+    if (activeSession && activeSession.mode === 'transfer' && !lineId) {
+      return;
+    }
+
+    // If active session has entered data, minimize it automatically to prevent work loss
+    if (hasSessionContent(activeSession)) {
+      const dockedSession = { ...activeSession! };
+      if (!dockedSession.sequentialOpNumber) {
+        dockedSession.sequentialOpNumber = getNextSequentialOpNumber(minimizedSessions, dockedSession.id);
+      }
+      setMinimizedSessions(prev => [dockedSession, ...prev.filter(s => s.id !== dockedSession.id)]);
+    }
+
+    const newOp = buildNewSession('transfer', lineId || initialLineForTransfer);
+    setActiveSession(newOp);
+    setInitialLineForTransfer(lineId);
   };
 
   const handleOpenReceiveMoney = (lineId?: string) => {
-    setInitialLineForTransfer(lineId);
+    setFilterLineIdForHistory(undefined);
     setTransferMode('receive');
     setCurrentTab('receive_money');
+
+    // If active session exists on receive mode and without explicit new lineId requested, keep it
+    if (activeSession && activeSession.mode === 'receive' && !lineId) {
+      return;
+    }
+
+    // If active session has entered data, minimize it automatically to prevent work loss
+    if (hasSessionContent(activeSession)) {
+      const dockedSession = { ...activeSession! };
+      if (!dockedSession.sequentialOpNumber) {
+        dockedSession.sequentialOpNumber = getNextSequentialOpNumber(minimizedSessions, dockedSession.id);
+      }
+      setMinimizedSessions(prev => [dockedSession, ...prev.filter(s => s.id !== dockedSession.id)]);
+    }
+
+    const newOp = buildNewSession('receive', lineId || initialLineForTransfer);
+    setActiveSession(newOp);
+    setInitialLineForTransfer(lineId);
+  };
+
+  // Called when user clicks "تصغير العملية" (Minimize button) at top of operation screen
+  const handleMinimizeActiveSession = (currentData: Partial<OperationSession>) => {
+    const currentMode = currentData.mode || activeSession?.mode || transferMode;
+    const updatedCurrent: OperationSession = activeSession 
+      ? { ...activeSession, ...currentData, updatedAt: Date.now() }
+      : { ...buildNewSession(currentMode), ...currentData, updatedAt: Date.now() };
+
+    // Assign sequentialOpNumber following today's successful operations count
+    if (!updatedCurrent.sequentialOpNumber) {
+      updatedCurrent.sequentialOpNumber = getNextSequentialOpNumber(minimizedSessions, updatedCurrent.id);
+    }
+
+    // Dock current operation into minimized list
+    setMinimizedSessions(prev => [updatedCurrent, ...prev.filter(s => s.id !== updatedCurrent.id)]);
+
+    // Open a fresh new operation immediately upon minimizing
+    const freshSession = buildNewSession(currentMode);
+    setActiveSession(freshSession);
+    setTransferMode(currentMode);
+    setCurrentTab(currentMode === 'receive' ? 'receive_money' : 'new_transfer');
+  };
+
+  // Restore and maximize an operation docked at the bottom
+  const handleRestoreSession = (sessionId: string) => {
+    const targetSession = minimizedSessions.find(s => s.id === sessionId);
+    if (!targetSession) return;
+
+    // If current active session has data, dock it
+    if (hasSessionContent(activeSession)) {
+      const dockedCurrent = { ...activeSession! };
+      if (!dockedCurrent.sequentialOpNumber) {
+        dockedCurrent.sequentialOpNumber = getNextSequentialOpNumber(minimizedSessions, dockedCurrent.id);
+      }
+      setMinimizedSessions(prev => [
+        dockedCurrent,
+        ...prev.filter(s => s.id !== sessionId && s.id !== dockedCurrent.id)
+      ]);
+    } else {
+      setMinimizedSessions(prev => prev.filter(s => s.id !== sessionId));
+    }
+
+    setActiveSession(targetSession);
+    setTransferMode(targetSession.mode);
+    setCurrentTab(targetSession.mode === 'receive' ? 'receive_money' : 'new_transfer');
+  };
+
+  // Discard a minimized session from bottom bar
+  const handleDiscardSession = (sessionId: string) => {
+    setMinimizedSessions(prev => prev.filter(s => s.id !== sessionId));
+  };
+
+  // Start a new operation explicitly
+  const handleNewOperation = (mode: 'transfer' | 'receive') => {
+    if (hasSessionContent(activeSession)) {
+      const dockedCurrent = { ...activeSession! };
+      if (!dockedCurrent.sequentialOpNumber) {
+        dockedCurrent.sequentialOpNumber = getNextSequentialOpNumber(minimizedSessions, dockedCurrent.id);
+      }
+      setMinimizedSessions(prev => [dockedCurrent, ...prev.filter(s => s.id !== dockedCurrent.id)]);
+    }
+    const freshSession = buildNewSession(mode);
+    setActiveSession(freshSession);
+    setTransferMode(mode);
+    setCurrentTab(mode === 'receive' ? 'receive_money' : 'new_transfer');
+  };
+
+  const handleUpdateActiveSession = (data: Partial<OperationSession>) => {
+    if (activeSession) {
+      setActiveSession({ ...activeSession, ...data, updatedAt: Date.now() });
+    }
   };
 
   const handleViewLineHistory = (lineId: string) => {
@@ -149,9 +306,18 @@ const MainAppContent: React.FC = () => {
 
         {(currentTab === 'new_transfer' || currentTab === 'receive_money') && (
           <NewTransferView
+            key={activeSession?.id || `${currentTab}_${transferMode}`}
             initialLineId={initialLineForTransfer}
             initialMode={transferMode}
-            onSuccess={(tx) => setSelectedReceiptTransfer(tx)}
+            activeSession={activeSession}
+            onUpdateSession={handleUpdateActiveSession}
+            onMinimize={handleMinimizeActiveSession}
+            onNewOperation={handleNewOperation}
+            minimizedCount={minimizedSessions.length}
+            onSuccess={(tx) => {
+              setActiveSession(null);
+              setSelectedReceiptTransfer(tx);
+            }}
             onPrintReceipt={(tx) => setSelectedReceiptTransfer(tx)}
           />
         )}
@@ -176,6 +342,13 @@ const MainAppContent: React.FC = () => {
 
         {currentTab === 'backup' && <BackupRestoreView />}
       </TabErrorBoundary>
+
+      {/* Docked Minimized Operations Bar at Bottom */}
+      <MinimizedOperationsBar
+        sessions={minimizedSessions}
+        onRestore={handleRestoreSession}
+        onDiscard={handleDiscardSession}
+      />
 
       {/* Global Printable Receipt Modal */}
       <ReceiptModal
@@ -205,9 +378,11 @@ const MainAppContent: React.FC = () => {
 export default function App() {
   return (
     <ThemeProvider>
-      <AuthProvider>
-        <MainAppContent />
-      </AuthProvider>
+      <TypographyProvider>
+        <AuthProvider>
+          <MainAppContent />
+        </AuthProvider>
+      </TypographyProvider>
     </ThemeProvider>
   );
 }

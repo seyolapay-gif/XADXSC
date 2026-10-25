@@ -950,6 +950,24 @@ export const api = {
     }
   },
 
+  getTodaySuccessfulTransfersCount(): number {
+    try {
+      const db = getLocalDB();
+      const now = new Date();
+      return db.transfers.filter((t) => {
+        if (!t.timestamp || t.status !== 'completed') return false;
+        const d = new Date(t.timestamp);
+        return (
+          d.getFullYear() === now.getFullYear() &&
+          d.getMonth() === now.getMonth() &&
+          d.getDate() === now.getDate()
+        );
+      }).length;
+    } catch {
+      return 0;
+    }
+  },
+
   async getTransfers(params: {
     search?: string;
     transferType?: string;
@@ -1166,6 +1184,47 @@ export const api = {
         saveLocalDB(backupData.data);
       }
       return { success: true, message: 'تمت استعادة البيانات بنجاح محلياً' };
+    }
+  },
+
+  async factoryReset(): Promise<{ success: boolean; message: string }> {
+    try {
+      const res = await request<{ success: boolean; message: string }>('/api/factory-reset', {
+        method: 'POST',
+      });
+      // Clear offline db & local custom settings
+      localStorage.removeItem(OFFLINE_DB_KEY);
+      localStorage.removeItem('cash_app_typography_settings');
+      localStorage.removeItem('cash_app_ui_zoom');
+      localStorage.removeItem('cash_app_custom_fonts');
+      return res;
+    } catch {
+      // Local fallback
+      const cleanSeed: LocalDB = {
+        users: DEFAULT_USERS,
+        cashLines: DEFAULT_FALLBACK_LINES,
+        transfers: [],
+        auditLogs: [
+          {
+            id: `aud_reset_${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            operatorId: 'usr_admin',
+            operatorName: 'أحمد محمد',
+            action: 'إعادة ضبط المصنع (Factory Reset)',
+            details: 'تم مسح كافة البيانات والسجلات والعمليات وإعادة تشغيل النظام بحالة المصنع الأولى',
+            ipAddress: '127.0.0.1',
+          },
+        ],
+        settings: DEFAULT_SETTINGS,
+      };
+      saveLocalDB(cleanSeed);
+      localStorage.removeItem('cash_app_typography_settings');
+      localStorage.removeItem('cash_app_ui_zoom');
+      localStorage.removeItem('cash_app_custom_fonts');
+      return {
+        success: true,
+        message: 'تمت إعادة ضبط المصنع ومسح كافة البيانات والسجلات بنجاح',
+      };
     }
   },
 

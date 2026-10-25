@@ -6,83 +6,24 @@ import {
   X, 
   CheckCircle2, 
   ShieldCheck, 
-  Building2, 
-  Wallet, 
-  QrCode,
-  Award,
-  Calendar,
-  Clock,
-  UserCheck,
-  FileCheck2,
+  ArrowDownLeft,
+  ArrowUpRight,
   Check,
-  Smartphone
+  QrCode,
+  Building2,
+  Calendar,
+  Phone,
+  FileCheck2,
+  User,
+  Hash,
+  Receipt,
+  BadgeCheck
 } from 'lucide-react';
 
 interface ReceiptModalProps {
   transfer: Transfer | null;
   isOpen: boolean;
   onClose: () => void;
-}
-
-// Helper: Convert number to Arabic words (Tafqeet) for official Egyptian financial receipts
-function numberToArabicWords(num: number): string {
-  if (!num || num <= 0) return 'صفر جنيه مصري';
-  const integerPart = Math.floor(num);
-  
-  const ones = ['', 'واحد', 'اثنان', 'ثلاثة', 'أربعة', 'خمسة', 'ستة', 'سبعة', 'ثمانية', 'تسعة'];
-  const tens = ['', 'عشرة', 'عشرون', 'ثلاثون', 'أربعون', 'خمسون', 'ستون', 'سبعون', 'ثمانون', 'تسعون'];
-  const teens = ['عشرة', 'أحد عشر', 'اثنا عشر', 'ثلاثة عشر', 'أربعة عشر', 'خمسة عشر', 'ستة عشر', 'سبعة عشر', 'ثمانية عشر', 'تسعة عشر'];
-  const hundreds = ['', 'مائة', 'مائتان', 'ثلاثمائة', 'أربعمائة', 'خمسمائة', 'ستمائة', 'سبعمائة', 'ثمانمائة', 'تسعمائة'];
-
-  function convertChunk(n: number): string {
-    let result = '';
-    const h = Math.floor(n / 100);
-    const r = n % 100;
-    const t = Math.floor(r / 10);
-    const o = r % 10;
-
-    if (h > 0) {
-      result += hundreds[h];
-    }
-
-    if (r > 0) {
-      if (h > 0) result += ' و';
-      if (r < 10) {
-        result += ones[r];
-      } else if (r >= 10 && r < 20) {
-        result += teens[r - 10];
-      } else {
-        if (o > 0) {
-          result += ones[o] + ' و';
-        }
-        result += tens[t];
-      }
-    }
-    return result;
-  }
-
-  let words = '';
-  const thousands = Math.floor(integerPart / 1000);
-  const remainder = integerPart % 1000;
-
-  if (thousands > 0) {
-    if (thousands === 1) {
-      words += 'ألف';
-    } else if (thousands === 2) {
-      words += 'ألفان';
-    } else if (thousands >= 3 && thousands <= 10) {
-      words += convertChunk(thousands) + ' آلاف';
-    } else {
-      words += convertChunk(thousands) + ' ألف';
-    }
-  }
-
-  if (remainder > 0) {
-    if (thousands > 0) words += ' و';
-    words += convertChunk(remainder);
-  }
-
-  return `فقط ${words.trim()} جنيهاً مصرياً لا غير`;
 }
 
 export const ReceiptModal: React.FC<ReceiptModalProps> = ({
@@ -99,10 +40,10 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
       const timer = setTimeout(() => {
         setShowSuccessOverlay(false);
         onClose();
-      }, 5000);
+      }, 3500);
       return () => clearTimeout(timer);
     }
-  }, [showSuccessOverlay]);
+  }, [showSuccessOverlay, onClose]);
 
   if (!isOpen || !transfer) return null;
 
@@ -120,50 +61,72 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
   };
 
   const formattedDate = formatDateTime(transfer.timestamp);
-  const totalInWords = numberToArabicWords(transfer.totalAmount || transfer.amount);
-
   const isReceive = transfer.transferType === 'receive_money';
 
+  // Determine carrier badge helper
+  const getProviderInfo = (phone: string) => {
+    const cleaned = (phone || '').replace(/\D/g, '');
+    if (cleaned.startsWith('010')) return { name: 'فودافون كاش', color: 'bg-rose-50 text-rose-700 border-rose-300' };
+    if (cleaned.startsWith('011')) return { name: 'اتصالات كاش', color: 'bg-emerald-50 text-emerald-800 border-emerald-300' };
+    if (cleaned.startsWith('012')) return { name: 'أورنج كاش', color: 'bg-orange-50 text-orange-800 border-orange-300' };
+    if (cleaned.startsWith('015')) return { name: 'وي باي', color: 'bg-indigo-50 text-indigo-800 border-indigo-300' };
+    return null;
+  };
+
+  const sourceProvider = getProviderInfo(transfer.sourceNumber);
+  const recipientProvider = getProviderInfo(transfer.recipientNumber);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm overflow-y-auto" dir="rtl">
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl my-6 flex flex-col max-h-[92vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/85 backdrop-blur-md overflow-y-auto" dir="rtl">
+      <div className="bg-slate-900 border border-slate-700/80 rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl my-auto flex flex-col max-h-[94vh] animate-scale-in">
         
-        {/* Modal Top Actions Header */}
-        <div className="px-5 py-3.5 bg-slate-950 border-b border-slate-800 flex items-center justify-between shrink-0">
+        {/* Top Header Bar */}
+        <div className="px-4 sm:px-6 py-3.5 bg-slate-950 border-b border-slate-800 flex items-center justify-between shrink-0 flex-wrap gap-2">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center shadow-md shadow-emerald-950">
-              <Printer className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center shadow-inner">
+              <Receipt className="w-5 h-5 text-emerald-400" />
             </div>
             <div>
-              <h3 className="font-bold text-white text-sm sm:text-base">إيصال العملية المالي المعتمد</h3>
-              <p className="text-xs text-slate-400 font-mono" dir="ltr">{transfer.referenceNumber}</p>
+              <div className="flex items-center gap-2">
+                <h3 className="font-black text-white text-sm sm:text-base tracking-tight">
+                  {isReceive ? 'إيصال استلام نقدية معتمد' : 'إيصال تحويل مالي معتمد'}
+                </h3>
+                <span className="text-[10px] bg-emerald-500/20 text-emerald-400 font-black px-2 py-0.5 rounded-full border border-emerald-500/30">
+                  موثق رسمي
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 font-mono tracking-wider" dir="ltr">
+                {transfer.referenceNumber}
+              </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            {/* Toggle Format: Thermal 80mm vs A4 Full Invoice */}
+          <div className="flex items-center gap-2.5">
+            {/* Format Switcher */}
             <div className="flex items-center bg-slate-900 p-1 rounded-xl border border-slate-800 text-xs">
               <button
                 type="button"
                 onClick={() => setReceiptType('thermal')}
-                className={`px-3 py-1.5 rounded-lg transition font-bold cursor-pointer ${
+                className={`px-3 py-1.5 rounded-lg transition font-bold cursor-pointer text-xs ${
                   receiptType === 'thermal' 
                     ? 'bg-emerald-600 text-white shadow-sm' 
                     : 'text-slate-400 hover:text-white'
                 }`}
+                style={receiptType === 'thermal' ? { color: '#ffffff' } : undefined}
               >
-                حراري (POS 80mm)
+                حراري (80mm)
               </button>
               <button
                 type="button"
                 onClick={() => setReceiptType('a4')}
-                className={`px-3 py-1.5 rounded-lg transition font-bold cursor-pointer ${
+                className={`px-3 py-1.5 rounded-lg transition font-bold cursor-pointer text-xs ${
                   receiptType === 'a4' 
                     ? 'bg-emerald-600 text-white shadow-sm' 
                     : 'text-slate-400 hover:text-white'
                 }`}
+                style={receiptType === 'a4' ? { color: '#ffffff' } : undefined}
               >
-                فاتورة رسمية (A4)
+                فاتورة كاملة (A4)
               </button>
             </div>
 
@@ -177,247 +140,264 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
           </div>
         </div>
 
-        {/* Printable Preview Area */}
-        <div className="p-4 sm:p-6 bg-slate-950/80 overflow-y-auto flex justify-center flex-1">
+        {/* Printable Receipt Canvas Container */}
+        <div className="p-3 sm:p-6 bg-slate-950/70 overflow-y-auto flex justify-center flex-1">
           
-          {/* THE RECEIPT ELEMENT - Strictly font-sans Cairo for Arabic glyph connection */}
           <div
             id="printable-receipt"
             ref={printAreaRef}
-            className={`bg-white text-slate-900 transition-all font-sans select-text ${
+            className={`bg-white text-slate-900 transition-all font-sans select-text shadow-2xl border border-slate-300 rounded-2xl relative overflow-hidden ${
               receiptType === 'thermal' 
-                ? 'w-full max-w-[340px] p-5 text-xs shadow-xl border border-slate-300 rounded-2xl' 
-                : 'w-full max-w-[560px] p-8 text-sm shadow-2xl border border-slate-300 rounded-2xl'
+                ? 'w-full max-w-[440px] p-5 sm:p-6 text-xs' 
+                : 'w-full max-w-[560px] p-6 sm:p-8 text-sm'
             }`}
             style={{
-              fontFamily: "'Cairo', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-              letterSpacing: 'normal'
+              fontFamily: "'Cairo', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
             }}
           >
-            
-            {/* Top Official Header with Logo & Certified Emblem */}
-            <div className="text-center pb-4 border-b border-slate-300">
-              <div className="flex items-center justify-center gap-2 mb-1.5">
-                <div className="w-10 h-10 rounded-xl bg-slate-900 text-emerald-400 flex items-center justify-center shadow-md">
-                  <ShieldCheck className="w-6 h-6" />
-                </div>
+            {/* Decorative Top Accent Strip in Brand Colors */}
+            <div className="absolute top-0 inset-x-0 h-2 bg-gradient-to-r from-emerald-600 via-teal-500 to-blue-600" />
+
+            {/* Receipt Header */}
+            <div className="text-center pb-4 border-b-2 border-dashed border-slate-300">
+              <div className="w-12 h-12 mx-auto rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center justify-center shadow-sm mb-2.5">
+                <ShieldCheck className="w-7 h-7 text-emerald-600" />
               </div>
-              <h1 className="text-sm sm:text-base font-black tracking-tight text-slate-950">
+              <h1 className="text-base sm:text-lg font-black tracking-tight text-slate-950">
                 منظومة إدارة الكاش والتحويلات المالية
               </h1>
-              <p className="text-[11px] font-bold text-slate-700 mt-0.5">
-                خدمات التحويلات البنكية والمحافظ الإلكترونية المعتمدة
+              <p className="text-xs text-slate-600 mt-0.5 font-bold">
+                إشعار تسجيل وقيد مالي إلكتروني رسمي معتمد
               </p>
-              <div className="flex items-center justify-center gap-2 text-[10px] text-slate-500 mt-1">
-                <span>القاهرة - جمهورية مصر العربية</span>
-                <span>·</span>
-                <span className="font-mono">س.ت: 409182</span>
-              </div>
             </div>
 
-            {/* Official Status Badge */}
-            <div className="my-3 py-2 px-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0">
-                  <Check className="w-3.5 h-3.5" />
+            {/* Status Ribbon with High Contrast */}
+            <div className="my-3.5 py-2.5 px-3.5 bg-emerald-50 border border-emerald-300 rounded-xl flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+                  <Check className="w-4 h-4 stroke-[3]" />
                 </div>
                 <div>
-                  <span className="font-black text-xs text-emerald-950 block">
-                    {isReceive ? 'إيصال استلام نقدية وإيداع رصيد (وارد)' : 'إيصال تحويل مالي صادر'}
+                  <span className="font-black text-xs sm:text-sm text-emerald-950 block">
+                    {isReceive ? 'عملية استلام نقدية وإيداع رصيد' : 'عملية تحويل كاش مالي معتمدة'}
                   </span>
-                  <span className="text-[10px] text-emerald-700 font-bold block">
-                    {transfer.status === 'completed' ? 'معتمد ومؤكد رسمياً بالسجلات' : 'قيد المراجعة والتأكيد'}
+                  <span className="text-[11px] text-emerald-700 font-bold block">
+                    تم التأكيد والترحيل للخزينة والسجلات بنجاح
                   </span>
                 </div>
               </div>
-              <span className="text-[10px] font-black text-emerald-800 bg-white px-2 py-0.5 rounded-lg border border-emerald-300 font-mono">
+              <span className="text-[11px] font-black text-emerald-900 bg-white px-2.5 py-1 rounded-md border border-emerald-400 font-mono tracking-wider shadow-xs">
                 SUCCESS
               </span>
             </div>
 
-            {/* Key Information Table */}
-            <div className="py-2 space-y-2 border-b border-slate-200 text-xs">
+            {/* Section 1: Transaction Metadata Grid */}
+            <div className="py-3 border-b border-slate-200 space-y-2 text-xs">
               <div className="flex items-center justify-between">
-                <span className="text-slate-600 font-medium">الرقم المرجعي الموحد:</span>
-                <span className="font-black font-mono text-slate-950 tracking-wider text-xs bg-slate-100 px-2 py-0.5 rounded">
+                <span className="text-slate-600 font-bold flex items-center gap-1.5">
+                  <Hash className="w-3.5 h-3.5 text-slate-400" />
+                  <span>الرقم المرجعي الموحد:</span>
+                </span>
+                <span className="font-black font-mono text-slate-950 tracking-wider text-xs bg-slate-100 px-3 py-1 rounded-md border border-slate-300" dir="ltr">
                   {transfer.referenceNumber}
                 </span>
               </div>
 
-              {transfer.serviceProviderRef && (
+              <div className="flex items-center justify-between">
+                <span className="text-slate-600 font-bold flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                  <span>تاريخ ووقت المعاملة:</span>
+                </span>
+                <span className="text-slate-900 font-black font-mono text-xs">{formattedDate}</span>
+              </div>
+
+              {transfer.operatorName && (
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-600 font-medium">مرجع مزود الخدمة:</span>
-                  <span className="font-bold font-mono text-slate-800">{transfer.serviceProviderRef}</span>
+                  <span className="text-slate-600 font-bold flex items-center gap-1.5">
+                    <User className="w-3.5 h-3.5 text-slate-400" />
+                    <span>الموظف / المسؤول المنفذ:</span>
+                  </span>
+                  <span className="text-slate-900 font-bold text-xs">{transfer.operatorName}</span>
                 </div>
               )}
+            </div>
 
-              <div className="flex items-center justify-between">
-                <span className="text-slate-600 font-medium">تاريخ ووقت المعاملة:</span>
-                <span className="text-slate-900 font-semibold">{formattedDate}</span>
+            {/* Section 2: Detailed Parties Box (الراسل والمستلم) */}
+            <div className="my-3.5 p-3.5 bg-slate-50/90 rounded-xl border border-slate-200 space-y-3">
+              <div className="text-[11px] font-black text-slate-500 uppercase tracking-wider pb-1 border-b border-slate-200 flex items-center justify-between">
+                <span>بيانات طرفي المعاملة</span>
+                <span className="text-[10px] text-emerald-700 font-bold">هوية موثقة ✓</span>
               </div>
 
-              <div className="flex items-center justify-between">
-                <span className="text-slate-600 font-medium">الموظف / المسؤول:</span>
-                <span className="font-bold text-slate-900">{transfer.operatorName || 'المسؤول المالي'}</span>
+              {/* Sender Details */}
+              <div className="flex items-start justify-between gap-2 text-xs">
+                <div className="space-y-0.5">
+                  <span className="text-slate-600 font-bold block">
+                    {isReceive ? 'الطرف الراسل (المودع):' : 'المحفظة / الخط المرسل:'}
+                  </span>
+                  {transfer.sourceLineName && !isReceive && (
+                    <span className="text-[11px] text-slate-500 font-medium block">
+                      خط النظام: {transfer.sourceLineName}
+                    </span>
+                  )}
+                </div>
+                <div className="text-left flex flex-col items-end gap-1">
+                  <span className="font-mono font-black text-slate-950 text-xs sm:text-sm bg-white px-2.5 py-0.5 rounded border border-slate-300 shadow-xs" dir="ltr">
+                    {transfer.sourceNumber}
+                  </span>
+                  {sourceProvider && (
+                    <span className={`text-[10px] px-2 py-0.5 rounded border font-bold ${sourceProvider.color}`}>
+                      {sourceProvider.name}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Recipient Details */}
+              <div className="flex items-start justify-between gap-2 text-xs pt-2 border-t border-slate-200">
+                <div className="space-y-0.5">
+                  <span className="text-slate-600 font-bold block">
+                    {isReceive ? 'الخط أو المحفظة المستلمة:' : 'الطرف المستلم:'}
+                  </span>
+                  {transfer.recipientName && (
+                    <span className="text-[11px] text-slate-800 font-black block">
+                      {transfer.recipientName}
+                    </span>
+                  )}
+                </div>
+                <div className="text-left flex flex-col items-end gap-1">
+                  <span className="font-mono font-black text-slate-950 text-xs sm:text-sm bg-white px-2.5 py-0.5 rounded border border-slate-300 shadow-xs" dir="ltr">
+                    {transfer.recipientNumber}
+                  </span>
+                  <div className="flex items-center gap-1">
+                    {recipientProvider && (
+                      <span className={`text-[10px] px-2 py-0.5 rounded border font-bold ${recipientProvider.color}`}>
+                        {recipientProvider.name}
+                      </span>
+                    )}
+                    {transfer.destinationBankOrWallet && !recipientProvider && (
+                      <span className="text-[10px] px-2 py-0.5 rounded border border-indigo-200 bg-indigo-50 text-indigo-700 font-bold">
+                        {transfer.destinationBankOrWallet}
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Operational Route Details */}
-            <div className="py-2.5 space-y-2 border-b border-slate-200 text-xs">
-              <div className="flex items-center justify-between">
-                <span className="text-slate-600 font-medium">
-                  {isReceive ? 'الخط المستلم للإيداع:' : 'الخط / المحفظة المرسلة:'}
-                </span>
-                <span className="font-bold text-slate-950">{transfer.sourceLineName}</span>
+            {/* Section 3: Financial Details Table */}
+            <div className="my-3.5 p-4 bg-slate-100/90 rounded-2xl border border-slate-300 space-y-2.5">
+              <div className="text-[11px] font-black text-slate-500 uppercase tracking-wider pb-1.5 border-b border-slate-300 flex items-center justify-between">
+                <span>البيان المالي للحركة</span>
+                <span className="text-[10px] font-mono text-slate-500 font-bold">CURRENCY: EGP</span>
               </div>
 
-              <div className="flex items-center justify-between">
-                <span className="text-slate-600 font-medium">
-                  {isReceive ? 'رقم الخط المستلم:' : 'رقم المرسل:'}
-                </span>
-                <span className="font-mono font-bold text-slate-900 tracking-wider" dir="ltr">
-                  {transfer.sourceNumber}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <span className="text-slate-600 font-medium">
-                  {isReceive ? 'العميل الراسل / المودع:' : 'المستلم:'}
-                </span>
-                <span className="font-bold text-slate-950">{transfer.recipientName || 'عميل نقدي'}</span>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <span className="text-slate-600 font-medium">
-                  {isReceive ? 'رقم الراسل / المحفظة:' : 'رقم المستلم / الحساب:'}
-                </span>
-                <span className="font-mono font-black text-slate-950 tracking-wider" dir="ltr">
-                  {transfer.recipientNumber}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <span className="text-slate-600 font-medium">
-                  {isReceive ? 'جهة / وسيلة الإيداع:' : 'الوجهة / الشبكة:'}
-                </span>
-                <span className="font-bold text-slate-900">{transfer.destinationBankOrWallet}</span>
-              </div>
-            </div>
-
-            {/* Financial Amounts Summary Box */}
-            <div className="my-3.5 p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
+              {/* Base Amount */}
               <div className="flex items-center justify-between text-xs">
-                <span className="text-slate-600 font-medium">
+                <span className="text-slate-700 font-bold">
                   {isReceive ? 'المبلغ المستلم الأساسي:' : 'مبلغ التحويل الأساسي:'}
                 </span>
-                <span className="font-bold font-mono text-slate-900 text-sm">
-                  {formatAmount(transfer.amount)} <span className="font-sans text-xs">ج.م</span>
-                </span>
+                <div className="text-left font-black font-mono text-slate-950 text-sm sm:text-base">
+                  <span dir="ltr">{formatAmount(transfer.amount)}</span>
+                  <span className="text-xs text-slate-500 font-sans mr-1">ج.م</span>
+                </div>
               </div>
 
+              {/* Service Fee */}
               <div className="flex items-center justify-between text-xs">
-                <span className="text-slate-600 font-medium">رسوم الخدمة والعمولة:</span>
-                <span className="font-bold font-mono text-slate-700">
-                  {formatAmount(transfer.fee)} <span className="font-sans text-xs">ج.م</span>
-                </span>
+                <span className="text-slate-700 font-bold">رسوم الخدمة والعمولة:</span>
+                <div className="text-left font-black font-mono text-emerald-800 text-xs sm:text-sm">
+                  <span dir="ltr">+{formatAmount(transfer.fee)}</span>
+                  <span className="text-[11px] text-slate-500 font-sans mr-1">ج.م</span>
+                </div>
               </div>
 
-              <div className="pt-2 border-t border-slate-300 flex items-center justify-between">
-                <span className="font-black text-sm text-slate-950">
-                  {isReceive ? 'إجمالي المبلغ المودع:' : 'الإجمالي النهائي المطلوب:'}
-                </span>
-                <span className="font-black font-mono text-emerald-700 text-base sm:text-lg">
-                  {formatAmount(transfer.totalAmount || transfer.amount)} <span className="font-sans text-xs text-slate-600">ج.م</span>
-                </span>
-              </div>
-
-              {/* Tafqeet in Arabic Words */}
-              <div className="pt-1.5 text-[10px] sm:text-[11px] text-slate-600 font-semibold bg-white p-2 rounded-xl border border-slate-200/80 text-center">
-                {totalInWords}
+              {/* Net Total Amount */}
+              <div className="pt-2.5 border-t-2 border-slate-300 flex items-center justify-between">
+                <div>
+                  <span className="font-black text-xs sm:text-sm text-slate-950 block">
+                    {isReceive ? 'إجمالي المبلغ المودع في الرصيد:' : 'الإجمالي النهائي المطلوب:'}
+                  </span>
+                  <span className="text-[10px] text-slate-500 font-bold block">
+                    شامل كافة الرسوم والضرائب المعتمدة
+                  </span>
+                </div>
+                <div className="text-left">
+                  <span className="font-black font-mono text-emerald-700 text-lg sm:text-xl block tracking-tight" dir="ltr">
+                    {formatAmount(transfer.totalAmount || transfer.amount)}
+                  </span>
+                  <span className="text-[11px] text-emerald-900 font-black block text-left">
+                    جنيه مصري (EGP)
+                  </span>
+                </div>
               </div>
             </div>
 
-            {/* Notes if present */}
+            {/* Notes if applicable */}
             {transfer.notes && (
-              <div className="my-2 p-2.5 bg-amber-50 rounded-xl border border-amber-200 text-[11px] text-amber-900">
+              <div className="my-2.5 p-2.5 bg-amber-50 rounded-xl border border-amber-300 text-xs text-amber-950">
                 <span className="font-bold">ملاحظات المعاملة: </span>
                 <span>{transfer.notes}</span>
               </div>
             )}
 
-            {/* Security Verification & Barcode */}
-            <div className="pt-3 border-t border-slate-300 text-center space-y-2">
-              
-              {/* Simulated High-Resolution Barcode */}
-              <div className="flex justify-center items-center gap-[2px] h-8 my-2">
-                {Array.from({ length: 42 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="bg-slate-950 h-full"
-                    style={{
-                      width: i % 4 === 0 ? '3.5px' : i % 3 === 0 ? '1.5px' : i % 2 === 0 ? '2px' : '1px',
-                      opacity: i % 7 === 0 ? 0.75 : 1,
-                    }}
-                  />
-                ))}
-              </div>
-
-              <p className="text-[10px] font-mono font-bold text-slate-700 tracking-widest">
-                *{transfer.referenceNumber}*
-              </p>
-
-              {/* Official Seal and Legal Disclaimer */}
-              <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-[10px] text-slate-600 leading-relaxed space-y-1">
-                <div className="font-bold text-slate-800 flex items-center justify-center gap-1.5">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 inline" />
-                  <span>إيصال إلكتروني مشفر معتمد رسمياً</span>
+            {/* Footer: Official Seal & Verification */}
+            <div className="pt-3.5 border-t-2 border-dashed border-slate-300 flex items-center justify-between text-slate-600 text-xs flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <QrCode className="w-5 h-5 text-emerald-700 shrink-0" />
+                <div>
+                  <span className="font-black text-slate-900 block text-xs">توثيق إلكتروني معتمد رسمياً</span>
+                  <span className="text-[10px] text-slate-500 block font-mono">SYSTEM CODE: APPROVED</span>
                 </div>
-                <p>شكراً لتعاملكم معنا · يرجى الاحتفاظ بهذا الإيصال للمراجعة والمحاسبة</p>
-                <p className="text-[9px] text-slate-400">
-                  تم الإصدار إلكترونياً وتوثيقه عبر شبكة التحويلات المالية الذكية
-                </p>
               </div>
-
+              <div className="text-right">
+                <span className="text-[10px] font-mono text-slate-400 block" dir="ltr">
+                  AUTH-{transfer.referenceNumber.slice(-6)}
+                </span>
+                <span className="text-[10px] text-emerald-700 font-bold block">خزينة معتمدة ✓</span>
+              </div>
             </div>
 
           </div>
 
         </div>
 
-        {/* Modal Bottom Actions */}
-        <div className="px-5 py-3.5 bg-slate-950 border-t border-slate-800 flex items-center justify-between shrink-0">
+        {/* Modal Bottom Actions with Clear Brand Colors and 100% Readability */}
+        <div className="px-4 sm:px-6 py-3.5 bg-slate-950 border-t border-slate-800 flex items-center justify-between shrink-0 flex-wrap gap-3">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-sm text-slate-400 hover:text-white transition font-medium cursor-pointer"
+            className="px-5 py-2.5 text-xs sm:text-sm text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 transition font-bold cursor-pointer rounded-xl border border-slate-700"
           >
             إغلاق
           </button>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5 sm:gap-3">
             <button
               type="button"
-              onClick={handleCompleteOperation}
-              className="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-emerald-600/25 transition cursor-pointer active:scale-95 text-xs sm:text-sm"
+              onClick={handlePrint}
+              className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white rounded-xl font-black flex items-center gap-2 border border-emerald-400/50 shadow-lg shadow-emerald-600/30 transition cursor-pointer active:scale-95 text-xs sm:text-sm"
+              style={{ color: '#ffffff' }}
             >
-              <CheckCircle2 className="w-4 h-4" />
-              <span>إتمام العملية</span>
+              <Printer className="w-4 h-4 text-white" />
+              <span className="text-white font-black">طباعة الإيصال الآن</span>
             </button>
 
             <button
               type="button"
-              onClick={handlePrint}
-              className="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-bold flex items-center gap-2 shadow-md transition cursor-pointer active:scale-95 text-xs sm:text-sm"
+              onClick={handleCompleteOperation}
+              className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white rounded-xl font-black flex items-center gap-2 border border-blue-400/50 shadow-lg shadow-blue-600/30 transition cursor-pointer active:scale-95 text-xs sm:text-sm"
+              style={{ color: '#ffffff' }}
             >
-              <Printer className="w-4 h-4 text-emerald-400" />
-              <span>طباعة الإيصال الآن</span>
+              <CheckCircle2 className="w-4 h-4 text-white" />
+              <span className="text-white font-black">إتمام العملية</span>
             </button>
           </div>
         </div>
 
       </div>
 
-      {/* Center Success Overlay Modal with Backdrop Blur */}
+      {/* Success Notification Modal Overlay */}
       {showSuccessOverlay && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-fade-in" dir="rtl">
           <div className="bg-slate-900 border border-slate-700 p-8 rounded-3xl shadow-2xl max-w-sm w-full text-center space-y-5 relative animate-scale-in">
@@ -431,16 +411,17 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
 
             <div className="space-y-2">
               <h3 className="text-xl font-black text-white tracking-tight">
-                تم التحويل والحفظ بنجاح
+                تمت العملية بنجاح
               </h3>
               <p className="text-xs text-slate-400 font-medium leading-relaxed">
-                تم حفظ المعاملة في السجلات الرسمية واعتمادها بنجاح تام (تختفي تلقائياً خلال 5 ثوانٍ)
+                تم حفظ وتوثيق المعاملة في السجلات الرسمية بنجاح تام
               </p>
             </div>
 
             <button
               onClick={handleDismissSuccessOverlay}
               className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition shadow-lg shadow-emerald-600/30 cursor-pointer"
+              style={{ color: '#ffffff' }}
             >
               موافق (إغلاق)
             </button>
