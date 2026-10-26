@@ -16,6 +16,7 @@ import { AuditLogView } from './components/AuditLogView';
 import { BackupRestoreView } from './components/BackupRestoreView';
 import { ReceiptModal } from './components/ReceiptModal';
 import { TransferDetailsModal } from './components/TransferDetailsModal';
+import { OperationSuccessModal } from './components/OperationSuccessModal';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { MinimizedOperationsBar } from './components/MinimizedOperationsBar';
 import { Transfer, OperationSession } from './types';
@@ -80,6 +81,7 @@ const MainAppContent: React.FC = () => {
   const [selectedReceiptTransfer, setSelectedReceiptTransfer] = useState<Transfer | null>(null);
   const [selectedDetailsTransfer, setSelectedDetailsTransfer] = useState<Transfer | null>(null);
   const [transferMode, setTransferMode] = useState<'transfer' | 'receive'>('transfer');
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
 
   // Multi-Operation Sessions state (support > 2 concurrent operations)
   const [sessionsCounter, setSessionsCounter] = useState(1);
@@ -316,9 +318,9 @@ const MainAppContent: React.FC = () => {
             minimizedCount={minimizedSessions.length}
             onSuccess={(tx) => {
               setActiveSession(null);
-              setSelectedReceiptTransfer(tx);
             }}
             onPrintReceipt={(tx) => setSelectedReceiptTransfer(tx)}
+            onShowSuccess={() => setIsSuccessModalOpen(true)}
           />
         )}
 
@@ -355,6 +357,7 @@ const MainAppContent: React.FC = () => {
         isOpen={!!selectedReceiptTransfer}
         transfer={selectedReceiptTransfer}
         onClose={() => setSelectedReceiptTransfer(null)}
+        onShowSuccess={() => setIsSuccessModalOpen(true)}
       />
 
       {/* Global Transfer Details Modal */}
@@ -370,6 +373,14 @@ const MainAppContent: React.FC = () => {
           setSelectedDetailsTransfer(updated);
         }}
       />
+
+      {/* Centered Success Notification with Full Blur Background - Exact Image 1 Design */}
+      <OperationSuccessModal
+        isOpen={isSuccessModalOpen}
+        onClose={() => setIsSuccessModalOpen(false)}
+        durationSeconds={5}
+      />
+
       <OfflineIndicator />
     </DashboardLayout>
   );

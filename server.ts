@@ -170,10 +170,10 @@ function getInitialSeed(): DatabaseSchema {
   const initialUsers: User[] = [
     {
       id: 'usr_admin',
-      username: 'admin',
-      fullName: 'أحمد محمد',
+      username: '8Adel',
+      fullName: 'عادل فتحي',
       role: 'admin',
-      passwordHash: hashPassword('Admin@1234', adminSalt),
+      passwordHash: hashPassword('ZXb01121', adminSalt),
       salt: adminSalt,
       isActive: true,
       createdAt: now,
@@ -355,7 +355,7 @@ function getInitialSeed(): DatabaseSchema {
       totalAmount: 2510.00,
       notes: 'تحويل مستحقات توريد قطع غيار',
       operatorId: 'usr_admin',
-      operatorName: 'أحمد محمد',
+      operatorName: 'عادل فتحي',
       status: 'completed',
       serviceProviderRef: 'VF-8892110',
       createdAt: `${todayStr}T14:20:00Z`,
@@ -447,7 +447,7 @@ function getInitialSeed(): DatabaseSchema {
       totalAmount: 7820.00,
       notes: 'حوالة مصرفية فورية',
       operatorId: 'usr_admin',
-      operatorName: 'أحمد محمد',
+      operatorName: 'عادل فتحي',
       status: 'completed',
       serviceProviderRef: 'BM-774411',
       createdAt: `${todayStr}T10:05:00Z`,
@@ -470,7 +470,7 @@ function getInitialSeed(): DatabaseSchema {
       totalAmount: 45000.00,
       notes: 'إعادة موازنة السيولة بين خطوط الكاش',
       operatorId: 'usr_admin',
-      operatorName: 'أحمد محمد',
+      operatorName: 'عادل فتحي',
       status: 'completed',
       serviceProviderRef: 'IPN-550012',
       createdAt: `${todayStr}T09:30:00Z`,
@@ -529,7 +529,7 @@ function getInitialSeed(): DatabaseSchema {
       id: 'aud_1',
       timestamp: `${todayStr}T07:00:00Z`,
       operatorId: 'usr_admin',
-      operatorName: 'أحمد محمد',
+      operatorName: 'عادل فتحي',
       action: 'إعداد النظام',
       details: 'تهيئة النظام وقاعدة البيانات وتعيين الحدود المالية الافتراضية',
     },
@@ -537,7 +537,7 @@ function getInitialSeed(): DatabaseSchema {
       id: 'aud_2',
       timestamp: `${todayStr}T08:00:00Z`,
       operatorId: 'usr_admin',
-      operatorName: 'أحمد محمد',
+      operatorName: 'عادل فتحي',
       action: 'تسجيل دخول',
       details: 'تسجيل دخول ناجح للمدير العام',
     },
@@ -545,7 +545,7 @@ function getInitialSeed(): DatabaseSchema {
       id: 'aud_3',
       timestamp: `${todayStr}T09:30:00Z`,
       operatorId: 'usr_admin',
-      operatorName: 'أحمد محمد',
+      operatorName: 'عادل فتحي',
       action: 'تنفيذ تحويل بين الخطوط',
       details: 'تحويل 45,000 ج.م من إنستاباي إلى فودافون كاش 1 لإعادة التوازن',
     },
@@ -655,7 +655,7 @@ function seedWeeklyHistoricalData() {
           totalAmount: amt + Math.round(amt * 0.003 + 5),
           notes: 'تحويل نقدي لصالح عميل',
           operatorId: 'usr_admin',
-          operatorName: 'أحمد محمد',
+          operatorName: 'عادل فتحي',
           status: 'completed',
           serviceProviderRef: `TX-${Math.floor(100000 + Math.random() * 900000)}`,
           createdAt: `${dateStr}T${12 + idx * 2}:15:00Z`,
@@ -863,7 +863,11 @@ async function startServer() {
       return res.status(400).json({ error: 'الرجاء إدخال اسم المستخدم وكلمة المرور' });
     }
 
-    const user = db.users.find((u) => u.username.toLowerCase() === username.trim().toLowerCase());
+    const user = db.users.find(
+      (u) =>
+        u.username.toLowerCase() === username.trim().toLowerCase() ||
+        (username.trim().toLowerCase() === 'admin' && u.id === 'usr_admin')
+    );
     if (!user) {
       return res.status(401).json({ error: 'اسم المستخدم أو كلمة المرور غير صحيحة' });
     }
@@ -1908,7 +1912,7 @@ async function startServer() {
         id: `aud_reset_${Date.now()}`,
         timestamp: now,
         operatorId: user?.id || 'usr_admin',
-        operatorName: user?.fullName || 'أحمد محمد',
+        operatorName: user?.fullName || 'عادل فتحي',
         action: 'إعادة ضبط المصنع (Factory Reset)',
         details: 'تم مسح كافة البيانات والسجلات والعمليات بالكامل وإعادة البرنامج إلى حالة المصنع الأولى',
         ipAddress: req.ip,

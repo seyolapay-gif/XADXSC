@@ -23,8 +23,8 @@ import { useTheme } from '../context/ThemeContext';
 export const LoginView: React.FC = () => {
   const { login } = useAuth();
   const { isDark } = useTheme();
-  const [username, setUsername] = useState('admin');
-  const [password, setPassword] = useState('Admin@1234');
+  const [username, setUsername] = useState('8Adel');
+  const [password, setPassword] = useState('ZXb01121');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);

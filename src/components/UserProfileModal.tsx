@@ -280,7 +280,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
                   required
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  placeholder="أحمد محمود"
+                  placeholder="عادل فتحي"
                   className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs font-bold text-white focus:outline-none focus:border-emerald-500 transition"
                 />
                 <UserIcon className="w-4 h-4 text-slate-500 absolute left-3 top-3" />

@@ -251,7 +251,7 @@ export const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
         {/* User Name & Role */}
         <div className="hidden sm:block text-right">
           <span className="text-xs sm:text-sm font-extrabold text-slate-800 dark:text-white block max-w-[120px] truncate leading-tight">
-            {user?.fullName || 'أحمد محمد'}
+            {user?.fullName || 'عادل فتحي'}
           </span>
           <span className="text-[10px] sm:text-[11px] text-[#00897b] dark:text-teal-300 font-bold block mt-0.5">
             {roleTitle}
@@ -348,7 +348,7 @@ export const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
                 <div className="min-w-0 flex-1 text-right">
                   <div className="flex items-center justify-between gap-1">
                     <h3 className={`font-extrabold text-[12px] leading-tight truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                      {user?.fullName || 'أحمد محمد'}
+                      {user?.fullName || 'عادل فتحي'}
                     </h3>
                     <span className={`text-[9.5px] font-bold px-2 py-0.5 rounded-md border shrink-0 ${
                       isDark 

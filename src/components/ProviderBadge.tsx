@@ -8,17 +8,13 @@ interface ProviderBadgeProps {
   className?: string;
 }
 
-// 1. Vodafone Cash (فودافون كاش - الشعار الرسمي المعتمد لشركة فودافون طبقاً للصورة المرفقة: الدائرة الحمراء مع علامة الاقتباس البيضاء)
+// 1. Vodafone Cash (فودافون كاش - الشعار الرسمي المعتمد لشركة فودافون)
 export const VodafoneCashIcon: React.FC<{ className?: string }> = ({ className = 'w-full h-full' }) => (
   <div className={`relative flex items-center justify-center ${className}`}>
     <img
-      src="/assets/aistudio/image_65b90b8b.png"
+      src="/assets/images/vodafone_official_logo.png"
       alt="فودافون كاش"
       className="w-full h-full object-contain select-none"
-      onError={(e) => {
-        const target = e.currentTarget;
-        target.src = '/assets/images/vodafone_official_logo.png';
-      }}
     />
   </div>
 );
@@ -30,13 +26,9 @@ export const OfficialVodafoneLogo = VodafoneCashIcon;
 export const VodafoneVipIcon: React.FC<{ className?: string }> = ({ className = 'w-full h-full' }) => (
   <div className={`relative flex items-center justify-center ${className}`}>
     <img
-      src="/assets/aistudio/image_65b90b8b.png"
+      src="/assets/images/vodafone_official_logo.png"
       alt="فودافون VIP"
       className="w-full h-full object-contain select-none"
-      onError={(e) => {
-        const target = e.currentTarget;
-        target.src = '/assets/images/vodafone_official_logo.png';
-      }}
     />
     {/* Gold VIP Ribbon Tag in bottom corner */}
     <span className="absolute -bottom-1 -right-1 px-1.5 py-0.5 bg-gradient-to-r from-amber-500 to-amber-600 text-white font-black text-[9px] rounded-md border border-amber-300 shadow-md">

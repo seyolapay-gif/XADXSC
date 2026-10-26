@@ -3,6 +3,7 @@ import { CashLine, Transfer, TransferType, OperationSession } from '../types';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { ProviderBadge, PROVIDER_CONFIG } from './ProviderBadge';
+import { ReceiptModal } from './ReceiptModal';
 import { formatAmount, toEnglishDigits } from '../utils/formatters';
 import { 
   Wallet, 
@@ -39,6 +40,7 @@ interface NewTransferViewProps {
   minimizedCount?: number;
   onSuccess: (transfer: Transfer) => void;
   onPrintReceipt: (transfer: Transfer) => void;
+  onShowSuccess?: () => void;
 }
 
 export const NewTransferView: React.FC<NewTransferViewProps> = ({
@@ -51,6 +53,7 @@ export const NewTransferView: React.FC<NewTransferViewProps> = ({
   minimizedCount = 0,
   onSuccess,
   onPrintReceipt,
+  onShowSuccess,
 }) => {
   const { user } = useAuth();
   const [lines, setLines] = useState<CashLine[]>([]);
@@ -97,6 +100,9 @@ export const NewTransferView: React.FC<NewTransferViewProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [createdTransfer, setCreatedTransfer] = useState<Transfer | null>(null);
+  const [pendingPreviewTransfer, setPendingPreviewTransfer] = useState<Transfer | null>(null);
+  const [pendingPayload, setPendingPayload] = useState<any | null>(null);
+  const [isReceiptOpen, setIsReceiptOpen] = useState(false);
 
   useEffect(() => {
     if (activeSession?.mode) {
@@ -249,38 +255,85 @@ export const NewTransferView: React.FC<NewTransferViewProps> = ({
       return;
     }
 
-    setIsSubmitting(true);
     setErrorMessage(null);
 
     const idempotencyKey = `idemp_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    const dateNow = new Date();
+    const dateStr = dateNow.toISOString().slice(0, 10).replace(/-/g, '');
+    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+    const generatedRef = operationMode === 'receive' 
+      ? `RCV${dateStr}${randomSuffix}` 
+      : `TRX${dateStr}${randomSuffix}`;
 
+    const payload = {
+      transferType: operationMode === 'receive' ? 'receive_money' : transferType,
+      sourceLineId,
+      recipientType,
+      recipientNumber: targetRecipientNumber,
+      recipientName: recipientName.trim() || (operationMode === 'receive' ? 'عميل مودع' : 'عميل نقدي'),
+      destinationBankOrWallet,
+      amount: numAmount,
+      fee: numFee,
+      notes: '',
+      idempotencyKey,
+      overrideLimit,
+    };
+
+    const preview: Transfer = {
+      id: `pending_${Date.now()}`,
+      referenceNumber: generatedRef,
+      timestamp: dateNow.toISOString(),
+      transferType: operationMode === 'receive' ? 'receive_money' : transferType,
+      sourceLineId,
+      sourceLineName: selectedLine?.name || '',
+      sourceNumber: selectedLine?.phoneNumber || '',
+      recipientType,
+      recipientNumber: targetRecipientNumber,
+      recipientName: recipientName.trim() || (operationMode === 'receive' ? 'عميل مودع' : 'عميل نقدي'),
+      destinationBankOrWallet,
+      amount: numAmount,
+      fee: numFee,
+      totalAmount,
+      notes: '',
+      operatorId: user?.id || 'usr_admin',
+      operatorName: user?.fullName || 'عادل فتحي',
+      status: 'completed',
+      serviceProviderRef: `${operationMode === 'receive' ? 'RCV' : 'TX'}-${Math.floor(100000 + Math.random() * 900000)}`,
+      createdAt: dateNow.toISOString(),
+      updatedAt: dateNow.toISOString(),
+    };
+
+    // Open receipt modal for preview. The operation IS NOT SAVED until user clicks 'إتمام العملية'!
+    setPendingPreviewTransfer(preview);
+    setPendingPayload(payload);
+    setIsReceiptOpen(true);
+    setIsSubmitting(false);
+  };
+
+  const handleConfirmAndSaveOperation = async () => {
+    if (!pendingPayload) return;
     try {
-      const res = await api.createTransfer({
-        transferType: operationMode === 'receive' ? 'receive_money' : transferType,
-        sourceLineId,
-        recipientType,
-        recipientNumber: targetRecipientNumber,
-        recipientName: recipientName.trim() || (operationMode === 'receive' ? 'عميل مودع' : 'عميل نقدي'),
-        destinationBankOrWallet,
-        amount: numAmount,
-        fee: numFee,
-        notes: '',
-        idempotencyKey,
-        overrideLimit,
-      });
-
+      const res = await api.createTransfer(pendingPayload);
       setCreatedTransfer(res);
-      onSuccess(res);
-      onPrintReceipt(res);
       loadLines();
       setAmount('');
       setRecipientNumber('');
       setRecipientName('');
+      setPendingPayload(null);
+      setIsReceiptOpen(false);
+      onSuccess(res);
+      if (onShowSuccess) {
+        onShowSuccess();
+      }
     } catch (err: any) {
-      setErrorMessage(err.message || 'فشل تنفيذ العملية');
-    } finally {
-      setIsSubmitting(false);
+      throw err;
     }
+  };
+
+  const handleCloseReceiptModal = () => {
+    setIsReceiptOpen(false);
+    setPendingPreviewTransfer(null);
+    setPendingPayload(null);
   };
 
   const handleStartNew = () => {
@@ -980,6 +1033,16 @@ export const NewTransferView: React.FC<NewTransferViewProps> = ({
           </div>
         </div>
       )}
+
+      {/* Printable Receipt Modal - Operation is ONLY saved when clicking "إتمام العملية" */}
+      <ReceiptModal
+        isOpen={isReceiptOpen}
+        transfer={pendingPreviewTransfer}
+        isPending={true}
+        onClose={handleCloseReceiptModal}
+        onConfirmComplete={handleConfirmAndSaveOperation}
+        onShowSuccess={onShowSuccess}
+      />
 
     </div>
   );

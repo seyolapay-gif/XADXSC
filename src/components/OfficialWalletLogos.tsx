@@ -7,13 +7,9 @@ import React from 'react';
 export const OfficialVodafoneLogo: React.FC<{ className?: string }> = ({ className = 'w-7 h-7' }) => (
   <div className={`relative flex items-center justify-center shrink-0 ${className}`}>
     <img
-      src="/assets/aistudio/image_65b90b8b.png"
+      src="/assets/images/vodafone_official_logo.png"
       alt="Vodafone"
       className="w-full h-full object-contain select-none"
-      onError={(e) => {
-        const target = e.currentTarget;
-        target.src = '/assets/images/vodafone_official_logo.png';
-      }}
     />
   </div>
 );

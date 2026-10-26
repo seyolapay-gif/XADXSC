@@ -172,8 +172,8 @@ const DEFAULT_FALLBACK_LINES: CashLine[] = [
 const DEFAULT_USERS: User[] = [
   {
     id: 'usr_admin',
-    username: 'admin',
-    fullName: 'أحمد محمود (المدير العام)',
+    username: '8Adel',
+    fullName: 'عادل فتحي (المدير العام)',
     role: 'admin',
     isActive: true,
     createdAt: '2026-01-01T00:00:00.000Z',
@@ -239,7 +239,7 @@ function getLocalDB(): LocalDB {
             id: 'log_init',
             timestamp: new Date().toISOString(),
             operatorId: 'usr_admin',
-            operatorName: 'أحمد محمود',
+            operatorName: 'عادل فتحي',
             action: 'تهيئة النظام',
             details: 'بدء تشغيل نظام إدارة التحويلات وخطوط الكاش الذكي',
             ipAddress: '127.0.0.1',
@@ -273,7 +273,7 @@ function getLocalDB(): LocalDB {
       totalAmount: 15075,
       notes: 'تحويل مصاريف تجارية',
       operatorId: 'usr_admin',
-      operatorName: 'أحمد محمود',
+      operatorName: 'عادل فتحي',
       status: 'completed',
       serviceProviderRef: 'VF-8931284',
       createdAt: now.toISOString(),
@@ -342,7 +342,7 @@ function getLocalDB(): LocalDB {
       totalAmount: 8245,
       notes: 'دفعة نقدية سريعة',
       operatorId: 'usr_admin',
-      operatorName: 'أحمد محمود',
+      operatorName: 'عادل فتحي',
       status: 'completed',
       serviceProviderRef: 'ET-3129841',
       createdAt: now.toISOString(),
@@ -405,7 +405,7 @@ function getLocalDB(): LocalDB {
         id: 'log_init',
         timestamp: now.toISOString(),
         operatorId: 'usr_admin',
-        operatorName: 'أحمد محمود',
+        operatorName: 'عادل فتحي',
         action: 'تهيئة النظام',
         details: 'بدء تشغيل نظام إدارة التحويلات وخطوط الكاش الذكي',
         ipAddress: '127.0.0.1',
@@ -506,17 +506,20 @@ export const api = {
     } catch (err: any) {
       // If server is not reachable, authenticate using fallback local DB
       const db = getLocalDB();
+      const cleanUser = username.toLowerCase().trim();
       const matched = db.users.find(
-        (u) => u.username.toLowerCase() === username.toLowerCase().trim() && u.isActive
+        (u) =>
+          u.username.toLowerCase() === cleanUser ||
+          ((cleanUser === '8adel' || cleanUser === 'admin') && u.role === 'admin')
       );
 
-      // In local mode, accept demo passwords or valid user
+      // In local mode, accept credentials or valid user
       const isKnownUser = !!matched;
       const isDemoMatch =
-        (username === 'admin' && (password === 'Admin@1234' || password === 'admin')) ||
-        (username === 'operations' && password === 'Ops@1234') ||
-        (username === 'accountant' && password === 'Account@1234') ||
-        (username === 'agent' && password === 'Agent@1234') ||
+        ((cleanUser === '8adel' || cleanUser === 'admin') && (password === 'ZXb01121' || password === 'Admin@1234')) ||
+        (cleanUser === 'operations' && password === 'Ops@1234') ||
+        (cleanUser === 'accountant' && password === 'Account@1234') ||
+        (cleanUser === 'agent' && password === 'Agent@1234') ||
         password.length >= 4;
 
       if (isKnownUser && isDemoMatch) {
@@ -937,7 +940,7 @@ export const api = {
         totalAmount: total,
         notes: data.notes || '',
         operatorId: 'usr_admin',
-        operatorName: 'أحمد محمود',
+        operatorName: 'عادل فتحي',
         status: 'completed',
         serviceProviderRef: `SRV-${Math.floor(1000000 + Math.random() * 9000000)}`,
         createdAt: new Date().toISOString(),
@@ -1209,7 +1212,7 @@ export const api = {
             id: `aud_reset_${Date.now()}`,
             timestamp: new Date().toISOString(),
             operatorId: 'usr_admin',
-            operatorName: 'أحمد محمد',
+            operatorName: 'عادل فتحي',
             action: 'إعادة ضبط المصنع (Factory Reset)',
             details: 'تم مسح كافة البيانات والسجلات والعمليات وإعادة تشغيل النظام بحالة المصنع الأولى',
             ipAddress: '127.0.0.1',
