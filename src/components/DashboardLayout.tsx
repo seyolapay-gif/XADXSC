@@ -25,7 +25,9 @@ import {
   AlertTriangle,
   ArrowDownLeft,
   User as UserIcon,
-  ChevronDown
+  ChevronDown,
+  Building2,
+  Layers
 } from 'lucide-react';
 import { ConnectionStatusBadge } from './ConnectionStatusBadge';
 import { UserProfileModal } from './UserProfileModal';
@@ -128,6 +130,8 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
 
   const navItems = [
     { id: 'dashboard', label: 'الرئيسية', icon: LayoutDashboard },
+    { id: 'vaults', label: 'إدارة الخزن المالية', icon: Building2 },
+    { id: 'handovers', label: 'التسليم والتسلّم (النوبات)', icon: Layers },
     { id: 'lines', label: 'خطوط الكاش والمحافظ', icon: Wallet },
     { id: 'new_transfer', label: 'التحويلات الصادرة', icon: ArrowLeftRight },
     { id: 'receive_money', label: 'استلام أموال (وارد)', icon: ArrowDownLeft },

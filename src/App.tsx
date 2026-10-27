@@ -14,12 +14,14 @@ import { UsersView } from './components/UsersView';
 import { SettingsView } from './components/SettingsView';
 import { AuditLogView } from './components/AuditLogView';
 import { BackupRestoreView } from './components/BackupRestoreView';
+import { VaultsManagementView } from './components/VaultsManagementView';
+import { ShiftHandoverView } from './components/ShiftHandoverView';
 import { ReceiptModal } from './components/ReceiptModal';
 import { TransferDetailsModal } from './components/TransferDetailsModal';
 import { OperationSuccessModal } from './components/OperationSuccessModal';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { MinimizedOperationsBar } from './components/MinimizedOperationsBar';
-import { Transfer, OperationSession } from './types';
+import { Transfer, OperationSession, SystemSettings } from './types';
 import { api } from './services/api';
 import { RefreshCw, AlertTriangle } from 'lucide-react';
 
@@ -72,10 +74,26 @@ class TabErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundary
 }
 
 const MainAppContent: React.FC = () => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const [currentTab, setCurrentTab] = useState('dashboard');
   const [initialLineForTransfer, setInitialLineForTransfer] = useState<string | undefined>(undefined);
   const [filterLineIdForHistory, setFilterLineIdForHistory] = useState<string | undefined>(undefined);
+
+  const [settings, setSettings] = useState<SystemSettings>({
+    companyName: 'إدارة التحويلات المالية الذكية',
+    currency: 'ج.م',
+    warningThresholdPercent: 80,
+    timezone: 'Africa/Cairo',
+    enableCommissionTracking: true,
+    defaultDailyLimit: 60000,
+    defaultMonthlyLimit: 200000,
+    integrationsMockMode: false,
+    allowOverdraft: false,
+  });
+
+  React.useEffect(() => {
+    api.getSettings().then(setSettings).catch(() => {});
+  }, []);
 
   // Modals state
   const [selectedReceiptTransfer, setSelectedReceiptTransfer] = useState<Transfer | null>(null);
@@ -330,6 +348,14 @@ const MainAppContent: React.FC = () => {
             onViewDetails={(tx) => setSelectedDetailsTransfer(tx)}
             onPrintReceipt={(tx) => setSelectedReceiptTransfer(tx)}
           />
+        )}
+
+        {currentTab === 'vaults' && user && (
+          <VaultsManagementView currentUser={user} settings={settings} />
+        )}
+
+        {currentTab === 'handovers' && user && (
+          <ShiftHandoverView currentUser={user} settings={settings} />
         )}
 
         {currentTab === 'limits' && <LimitsView />}

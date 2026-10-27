@@ -189,3 +189,127 @@ export interface OperationSession {
   createdAt: number;
   updatedAt: number;
 }
+
+// ==========================================
+// Financial Vaults & Multi-Tier Architecture
+// ==========================================
+
+export type VaultType = 'main' | 'sub' | 'customer';
+
+export interface Vault {
+  id: string;
+  name: string;
+  code: string;
+  type: VaultType;
+  balance: number;
+  allocatedBalance?: number; // For main vault: total funds distributed to sub-vaults
+  branch?: string;
+  assignedEmployeeId?: string;
+  assignedEmployeeName?: string;
+  status: 'active' | 'suspended';
+  minBalance?: number;
+  maxBalance?: number;
+  totalIn: number;
+  totalOut: number;
+  lastTransactionAt?: string;
+  lastTransactionType?: string;
+  lastTransactionAmount?: number;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type VaultTransactionType = 
+  | 'deposit_main' 
+  | 'transfer_main_to_sub' 
+  | 'transfer_sub_to_main' 
+  | 'allocate_customer_vault' 
+  | 'line_deduction' 
+  | 'line_refund' 
+  | 'handover_settlement' 
+  | 'adjustment';
+
+export interface VaultTransaction {
+  id: string;
+  referenceNumber: string;
+  timestamp: string;
+  type: VaultTransactionType;
+  sourceVaultId?: string;
+  sourceVaultName?: string;
+  targetVaultId?: string;
+  targetVaultName?: string;
+  amount: number;
+  sourceBalanceBefore?: number;
+  sourceBalanceAfter?: number;
+  targetBalanceBefore?: number;
+  targetBalanceAfter?: number;
+  relatedLineId?: string;
+  relatedLineName?: string;
+  operatorId: string;
+  operatorName: string;
+  status: 'completed' | 'pending' | 'rejected';
+  notes?: string;
+  idempotencyKey?: string;
+  createdAt: string;
+}
+
+// ==========================================
+// Shift Handover & Custody (التسليم والتسلّم)
+// ==========================================
+
+export type HandoverStatus = 
+  | 'draft' 
+  | 'pending_receiver_approval' 
+  | 'pending_manager_approval' 
+  | 'completed' 
+  | 'rejected' 
+  | 'needs_reconciliation';
+
+export interface LineVerificationCheck {
+  lineId: string;
+  lineName: string;
+  provider: ProviderType;
+  phoneNumber: string;
+  systemBalance: number;
+  verified: boolean;
+  actualBalance?: number;
+  notes?: string;
+}
+
+export interface ShiftHandover {
+  id: string;
+  handoverNumber: string;
+  vaultId: string;
+  vaultName: string;
+  branch: string;
+  deliveringUserId: string;
+  deliveringUserName: string;
+  receivingUserId: string;
+  receivingUserName: string;
+  shiftStartTime: string;
+  shiftEndTime: string;
+  startBalance: number;
+  totalDeposits: number;
+  totalWithdrawals: number;
+  totalTransfersIn: number;
+  totalTransfersOut: number;
+  successfulOperationsCount: number;
+  failedOperationsCount: number;
+  pendingOperationsCount: number;
+  expectedEndingBalance: number;
+  actualEndingBalance: number;
+  differenceAmount: number; // actual - expected
+  differenceStatus: 'matched' | 'deficit' | 'surplus'; // مطابق | عجز | فائض
+  differenceReason?: string;
+  lineVerifications: LineVerificationCheck[];
+  notes?: string;
+  deliveringConfirmedAt?: string;
+  receivingConfirmedAt?: string;
+  rejectionReason?: string;
+  managerApprovedAt?: string;
+  managerApprovedById?: string;
+  managerApprovedByName?: string;
+  status: HandoverStatus;
+  createdAt: string;
+  updatedAt: string;
+}

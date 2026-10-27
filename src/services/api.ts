@@ -4,7 +4,10 @@ import {
   Transfer, 
   DashboardStats, 
   AuditLog, 
-  SystemSettings 
+  SystemSettings,
+  Vault,
+  VaultTransaction,
+  ShiftHandover,
 } from '../types';
 
 const TOKEN_KEY = 'cash_transfer_auth_token';
@@ -226,6 +229,9 @@ interface LocalDB {
   transfers: Transfer[];
   auditLogs: AuditLog[];
   settings: SystemSettings;
+  vaults: Vault[];
+  vaultTransactions: VaultTransaction[];
+  shiftHandovers: ShiftHandover[];
 }
 
 function getLocalDB(): LocalDB {
@@ -412,6 +418,9 @@ function getLocalDB(): LocalDB {
       },
     ],
     settings: DEFAULT_SETTINGS,
+    vaults: [],
+    vaultTransactions: [],
+    shiftHandovers: [],
   };
 
   saveLocalDB(initialDB);
@@ -1219,6 +1228,9 @@ export const api = {
           },
         ],
         settings: DEFAULT_SETTINGS,
+        vaults: [],
+        vaultTransactions: [],
+        shiftHandovers: [],
       };
       saveLocalDB(cleanSeed);
       localStorage.removeItem('cash_app_typography_settings');
@@ -1450,6 +1462,123 @@ export const api = {
         portalUrl: line?.portalUrl || 'https://web.vodafone.com.eg/ar/business/login',
       };
     }
+  },
+
+  // ------------------------------------
+  // Vaults & Treasury Management Methods
+  // ------------------------------------
+  async getVaults(): Promise<{ vaults: Vault[]; summary: any }> {
+    return await request('/api/vaults');
+  },
+
+  async getVaultById(id: string): Promise<{ vault: Vault; transactions: VaultTransaction[] }> {
+    return await request(`/api/vaults/${id}`);
+  },
+
+  async createSubVault(data: {
+    name: string;
+    code?: string;
+    branch?: string;
+    assignedEmployeeId?: string;
+    minBalance?: number;
+    maxBalance?: number;
+    notes?: string;
+  }): Promise<Vault> {
+    return await request('/api/vaults', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async updateVault(id: string, data: Partial<Vault>): Promise<Vault> {
+    return await request(`/api/vaults/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async depositToMainVault(
+    id: string,
+    amount: number,
+    notes?: string
+  ): Promise<{ success: boolean; vault: Vault; transaction: VaultTransaction }> {
+    return await request(`/api/vaults/${id}/deposit`, {
+      method: 'POST',
+      body: JSON.stringify({ amount, notes }),
+    });
+  },
+
+  async transferBetweenVaults(
+    sourceVaultId: string,
+    targetVaultId: string,
+    amount: number,
+    notes?: string,
+    idempotencyKey?: string
+  ): Promise<{
+    success: boolean;
+    transaction: VaultTransaction;
+    sourceVault: Vault;
+    targetVault: Vault;
+  }> {
+    return await request('/api/vaults/transfer', {
+      method: 'POST',
+      body: JSON.stringify({ sourceVaultId, targetVaultId, amount, notes, idempotencyKey }),
+    });
+  },
+
+  async getVaultTransactions(params: Record<string, any> = {}): Promise<{
+    transactions: VaultTransaction[];
+    totalCount: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+  }> {
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== '') qs.append(k, String(v));
+    });
+    return await request(`/api/vault-transactions?${qs.toString()}`);
+  },
+
+  // ------------------------------------
+  // Shift Handover & Custody Methods
+  // ------------------------------------
+  async getHandovers(params: Record<string, any> = {}): Promise<ShiftHandover[]> {
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== '') qs.append(k, String(v));
+    });
+    return await request(`/api/handovers?${qs.toString()}`);
+  },
+
+  async getHandoverById(id: string): Promise<ShiftHandover> {
+    return await request(`/api/handovers/${id}`);
+  },
+
+  async createHandover(data: Partial<ShiftHandover>): Promise<ShiftHandover> {
+    return await request('/api/handovers', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async acceptHandover(id: string): Promise<{ success: boolean; handover: ShiftHandover; vault?: Vault }> {
+    return await request(`/api/handovers/${id}/accept`, {
+      method: 'POST',
+    });
+  },
+
+  async rejectHandover(id: string, reason: string): Promise<{ success: boolean; handover: ShiftHandover }> {
+    return await request(`/api/handovers/${id}/reject`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    });
+  },
+
+  async managerApproveHandover(id: string): Promise<{ success: boolean; handover: ShiftHandover }> {
+    return await request(`/api/handovers/${id}/manager-approve`, {
+      method: 'POST',
+    });
   },
 };
 

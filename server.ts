@@ -10,7 +10,9 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const PORT = Number(process.env.PORT) || 3000;
+const portArgIndex = process.argv.indexOf('--port');
+const cliPort = portArgIndex !== -1 && process.argv[portArgIndex + 1] ? Number(process.argv[portArgIndex + 1]) : null;
+const PORT = cliPort || (process.env.PORT && process.env.PORT !== '8080' ? Number(process.env.PORT) : 3000);
 const DATA_DIR = path.join(__dirname, 'data');
 const DB_FILE = path.join(DATA_DIR, 'db.json');
 
@@ -136,12 +138,131 @@ export interface SystemSettings {
   allowOverdraft: boolean;
 }
 
+export type VaultType = 'main' | 'sub' | 'customer';
+
+export interface Vault {
+  id: string;
+  name: string;
+  code: string;
+  type: VaultType;
+  balance: number;
+  allocatedBalance?: number;
+  branch?: string;
+  assignedEmployeeId?: string;
+  assignedEmployeeName?: string;
+  status: 'active' | 'suspended';
+  minBalance?: number;
+  maxBalance?: number;
+  totalIn: number;
+  totalOut: number;
+  lastTransactionAt?: string;
+  lastTransactionType?: string;
+  lastTransactionAmount?: number;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type VaultTransactionType = 
+  | 'deposit_main' 
+  | 'transfer_main_to_sub' 
+  | 'transfer_sub_to_main' 
+  | 'allocate_customer_vault' 
+  | 'line_deduction' 
+  | 'line_refund' 
+  | 'handover_settlement' 
+  | 'adjustment';
+
+export interface VaultTransaction {
+  id: string;
+  referenceNumber: string;
+  timestamp: string;
+  type: VaultTransactionType;
+  sourceVaultId?: string;
+  sourceVaultName?: string;
+  targetVaultId?: string;
+  targetVaultName?: string;
+  amount: number;
+  sourceBalanceBefore?: number;
+  sourceBalanceAfter?: number;
+  targetBalanceBefore?: number;
+  targetBalanceAfter?: number;
+  relatedLineId?: string;
+  relatedLineName?: string;
+  operatorId: string;
+  operatorName: string;
+  status: 'completed' | 'pending' | 'rejected';
+  notes?: string;
+  idempotencyKey?: string;
+  createdAt: string;
+}
+
+export type HandoverStatus = 
+  | 'draft' 
+  | 'pending_receiver_approval' 
+  | 'pending_manager_approval' 
+  | 'completed' 
+  | 'rejected' 
+  | 'needs_reconciliation';
+
+export interface LineVerificationCheck {
+  lineId: string;
+  lineName: string;
+  provider: ProviderType;
+  phoneNumber: string;
+  systemBalance: number;
+  verified: boolean;
+  actualBalance?: number;
+  notes?: string;
+}
+
+export interface ShiftHandover {
+  id: string;
+  handoverNumber: string;
+  vaultId: string;
+  vaultName: string;
+  branch: string;
+  deliveringUserId: string;
+  deliveringUserName: string;
+  receivingUserId: string;
+  receivingUserName: string;
+  shiftStartTime: string;
+  shiftEndTime: string;
+  startBalance: number;
+  totalDeposits: number;
+  totalWithdrawals: number;
+  totalTransfersIn: number;
+  totalTransfersOut: number;
+  successfulOperationsCount: number;
+  failedOperationsCount: number;
+  pendingOperationsCount: number;
+  expectedEndingBalance: number;
+  actualEndingBalance: number;
+  differenceAmount: number;
+  differenceStatus: 'matched' | 'deficit' | 'surplus';
+  differenceReason?: string;
+  lineVerifications: LineVerificationCheck[];
+  notes?: string;
+  deliveringConfirmedAt?: string;
+  receivingConfirmedAt?: string;
+  rejectionReason?: string;
+  managerApprovedAt?: string;
+  managerApprovedById?: string;
+  managerApprovedByName?: string;
+  status: HandoverStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface DatabaseSchema {
   users: User[];
   cashLines: CashLine[];
   transfers: Transfer[];
   auditLogs: AuditLog[];
   settings: SystemSettings;
+  vaults: Vault[];
+  vaultTransactions: VaultTransaction[];
+  shiftHandovers: ShiftHandover[];
 }
 
 // In-Memory Database with atomic persistence
@@ -563,12 +684,154 @@ function getInitialSeed(): DatabaseSchema {
     allowOverdraft: false,
   };
 
+  const initialVaults: Vault[] = [
+    {
+      id: 'vlt_main',
+      name: 'الخزنة المركزية الرئيسية',
+      code: 'MAIN-01',
+      type: 'main',
+      balance: 2500000,
+      allocatedBalance: 750000,
+      status: 'active',
+      minBalance: 500000,
+      maxBalance: 10000000,
+      totalIn: 3250000,
+      totalOut: 750000,
+      lastTransactionAt: `${todayStr}T09:15:00Z`,
+      lastTransactionType: 'transfer_main_to_sub',
+      lastTransactionAmount: 150000,
+      notes: 'الخزنة المركزية لتوزيع وتغذية الفروع والخزن الفرعية',
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'vlt_sub_1',
+      name: 'خزنة فرع المهندسين',
+      code: 'SUB-MHD-01',
+      type: 'sub',
+      balance: 450000,
+      branch: 'فرع المهندسين',
+      assignedEmployeeId: 'usr_ops',
+      assignedEmployeeName: 'محمود السيد',
+      status: 'active',
+      minBalance: 50000,
+      maxBalance: 1000000,
+      totalIn: 600000,
+      totalOut: 150000,
+      lastTransactionAt: `${todayStr}T08:30:00Z`,
+      lastTransactionType: 'transfer_main_to_sub',
+      lastTransactionAmount: 200000,
+      notes: 'خزنة تشغيلية - كاشير فرع المهندسين',
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'vlt_sub_2',
+      name: 'خزنة فرع مدينة نصر',
+      code: 'SUB-NASR-01',
+      type: 'sub',
+      balance: 300000,
+      branch: 'فرع مدينة نصر',
+      assignedEmployeeId: 'usr_agent',
+      assignedEmployeeName: 'كريم عادل',
+      status: 'active',
+      minBalance: 50000,
+      maxBalance: 800000,
+      totalIn: 450000,
+      totalOut: 150000,
+      lastTransactionAt: `${todayStr}T09:15:00Z`,
+      lastTransactionType: 'transfer_main_to_sub',
+      lastTransactionAmount: 150000,
+      notes: 'خزنة تشغيلية - كاشير فرع مدينة نصر',
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'vlt_customer',
+      name: 'خزنة عمليات العملاء والمحافظ',
+      code: 'CUST-OPS-01',
+      type: 'customer',
+      balance: 1158580,
+      status: 'active',
+      totalIn: 1158580,
+      totalOut: 0,
+      lastTransactionAt: `${todayStr}T10:05:00Z`,
+      lastTransactionType: 'line_refund',
+      lastTransactionAmount: 7800,
+      notes: 'خزنة مخصصة لتمويل ومطابقة رصيد خطوط الكاش والمحافظ وحمايتها من العجز',
+      createdAt: now,
+      updatedAt: now,
+    },
+  ];
+
+  const initialVaultTransactions: VaultTransaction[] = [
+    {
+      id: 'vtx_seed_1',
+      referenceNumber: 'VTX-20261026-0001',
+      timestamp: `${todayStr}T08:00:00Z`,
+      type: 'deposit_main',
+      targetVaultId: 'vlt_main',
+      targetVaultName: 'الخزنة المركزية الرئيسية',
+      amount: 1000000,
+      targetBalanceBefore: 1500000,
+      targetBalanceAfter: 2500000,
+      operatorId: 'usr_admin',
+      operatorName: 'عادل فتحي',
+      status: 'completed',
+      notes: 'توريد سيولة نقدية جديدة للخزنة المركزية من الحساب البنكي',
+      createdAt: `${todayStr}T08:00:00Z`,
+    },
+    {
+      id: 'vtx_seed_2',
+      referenceNumber: 'VTX-20261026-0002',
+      timestamp: `${todayStr}T08:30:00Z`,
+      type: 'transfer_main_to_sub',
+      sourceVaultId: 'vlt_main',
+      sourceVaultName: 'الخزنة المركزية الرئيسية',
+      targetVaultId: 'vlt_sub_1',
+      targetVaultName: 'خزنة فرع المهندسين',
+      amount: 200000,
+      sourceBalanceBefore: 2500000,
+      sourceBalanceAfter: 2300000,
+      targetBalanceBefore: 250000,
+      targetBalanceAfter: 450000,
+      operatorId: 'usr_admin',
+      operatorName: 'عادل فتحي',
+      status: 'completed',
+      notes: 'تغذية صباحية لخزنة فرع المهندسين لبدء النوبة',
+      createdAt: `${todayStr}T08:30:00Z`,
+    },
+    {
+      id: 'vtx_seed_3',
+      referenceNumber: 'VTX-20261026-0003',
+      timestamp: `${todayStr}T09:15:00Z`,
+      type: 'transfer_main_to_sub',
+      sourceVaultId: 'vlt_main',
+      sourceVaultName: 'الخزنة المركزية الرئيسية',
+      targetVaultId: 'vlt_sub_2',
+      targetVaultName: 'خزنة فرع مدينة نصر',
+      amount: 150000,
+      sourceBalanceBefore: 2850000,
+      sourceBalanceAfter: 2700000,
+      targetBalanceBefore: 150000,
+      targetBalanceAfter: 300000,
+      operatorId: 'usr_admin',
+      operatorName: 'عادل فتحي',
+      status: 'completed',
+      notes: 'تغذية خزنة فرع مدينة نصر',
+      createdAt: `${todayStr}T09:15:00Z`,
+    },
+  ];
+
   return {
     users: initialUsers,
     cashLines: initialCashLines,
     transfers: initialTransfers,
     auditLogs: initialAuditLogs,
     settings: initialSettings,
+    vaults: initialVaults,
+    vaultTransactions: initialVaultTransactions,
+    shiftHandovers: [],
   };
 }
 
@@ -681,6 +944,17 @@ function initDatabase() {
       const content = fs.readFileSync(DB_FILE, 'utf-8');
       db = JSON.parse(content);
       console.log('✅ Loaded existing database from', DB_FILE);
+
+      if (!db.vaults || db.vaults.length === 0) {
+        const seed = getInitialSeed();
+        db.vaults = seed.vaults;
+        db.vaultTransactions = seed.vaultTransactions;
+        db.shiftHandovers = seed.shiftHandovers;
+        saveDatabaseSync();
+      }
+      if (!db.vaultTransactions) db.vaultTransactions = [];
+      if (!db.shiftHandovers) db.shiftHandovers = [];
+
       seedWeeklyHistoricalData();
     } catch (err) {
       console.error('⚠️ Could not parse existing database file, recreating:', err);
@@ -1608,11 +1882,20 @@ async function startServer() {
 
     const isReceiving = transferType === 'receive_money';
 
+    const customerVault = db.vaults?.find((v) => v.type === 'customer');
+
     // Check Balance and Limits only for outgoing transfers (not receive_money)
     if (!isReceiving) {
       if (!db.settings.allowOverdraft && sourceLine.balance < transferAmount) {
         return res.status(400).json({
           error: `الرصيد المتاح في الخط (${sourceLine.balance.toLocaleString()} ${db.settings.currency}) غير كافٍ لتنفيذ تحويل بقيمة ${transferAmount.toLocaleString()} ${db.settings.currency}`,
+        });
+      }
+
+      // Check Customer Vault Non-Negative Balance Rule
+      if (customerVault && customerVault.balance < (transferAmount + transferFee)) {
+        return res.status(400).json({
+          error: `رصيد خزنة عمليات العملاء (${customerVault.balance.toLocaleString()} ${db.settings.currency}) غير كافٍ لتغطية التحويل بقيمة ${(transferAmount + transferFee).toLocaleString()} ${db.settings.currency}. يُمنع الرصيد السالب طبقاً لضوابط الصندوق المركزي.`,
         });
       }
 
@@ -1680,6 +1963,49 @@ async function startServer() {
       sourceLine.balance -= (transferAmount + transferFee);
     }
     sourceLine.updatedAt = now.toISOString();
+
+    // Sync Customer Operations Vault & record transaction
+    if (customerVault) {
+      const prevBal = customerVault.balance;
+      if (isReceiving) {
+        customerVault.balance += transferAmount;
+        customerVault.totalIn += transferAmount;
+        customerVault.lastTransactionAt = now.toISOString();
+        customerVault.lastTransactionType = 'line_refund';
+        customerVault.lastTransactionAmount = transferAmount;
+      } else {
+        customerVault.balance -= (transferAmount + transferFee);
+        customerVault.totalOut += (transferAmount + transferFee);
+        customerVault.lastTransactionAt = now.toISOString();
+        customerVault.lastTransactionType = 'line_deduction';
+        customerVault.lastTransactionAmount = transferAmount;
+      }
+      customerVault.updatedAt = now.toISOString();
+
+      const vaultTx: VaultTransaction = {
+        id: `vtx_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        referenceNumber: `VTX-${datePrefix}-${Math.floor(1000 + Math.random() * 9000)}`,
+        timestamp: now.toISOString(),
+        type: isReceiving ? 'line_refund' : 'line_deduction',
+        sourceVaultId: isReceiving ? undefined : customerVault.id,
+        sourceVaultName: isReceiving ? undefined : customerVault.name,
+        targetVaultId: isReceiving ? customerVault.id : undefined,
+        targetVaultName: isReceiving ? customerVault.name : undefined,
+        amount: transferAmount,
+        sourceBalanceBefore: isReceiving ? undefined : prevBal,
+        sourceBalanceAfter: isReceiving ? undefined : customerVault.balance,
+        targetBalanceBefore: isReceiving ? prevBal : undefined,
+        targetBalanceAfter: isReceiving ? customerVault.balance : undefined,
+        relatedLineId: sourceLine.id,
+        relatedLineName: sourceLine.name,
+        operatorId: user.id,
+        operatorName: user.fullName,
+        status: 'completed',
+        notes: isReceiving ? `إيداع وارد من حركة: ${referenceNumber}` : `خصم عملية تحويل: ${referenceNumber}`,
+        createdAt: now.toISOString(),
+      };
+      db.vaultTransactions.unshift(vaultTx);
+    }
 
     // If recipient matches an internal line (and is not the source line), credit that recipient line!
     const recipientLine = db.cashLines.find((l) => (l.phoneNumber === recipientNumber.trim() || l.id === recipientNumber.trim()) && l.id !== sourceLine.id);
@@ -1927,6 +2253,608 @@ async function startServer() {
       message: 'تمت إعادة ضبط المصنع بنجاح، ومسح كافة العمليات والسجلات كما لو كان البرنامج يعمل لأول مرة',
       timestamp: now,
     });
+  });
+
+  // ==========================================
+  // 9. VAULTS & TREASURY MANAGEMENT ENDPOINTS
+  // ==========================================
+
+  // 9.1. List all vaults with computed statistics
+  app.get('/api/vaults', authMiddleware, (req: Request, res: Response) => {
+    const vaults = db.vaults || [];
+    
+    // Auto sync allocatedBalance for Main Vault from Sub Vaults
+    const subVaults = vaults.filter(v => v.type === 'sub');
+    const mainVault = vaults.find(v => v.type === 'main');
+    const customerVault = vaults.find(v => v.type === 'customer');
+
+    const totalSubBalance = subVaults.reduce((sum, v) => sum + v.balance, 0);
+    if (mainVault) {
+      mainVault.allocatedBalance = totalSubBalance;
+    }
+
+    // Auto-sync customer vault balance to match cash lines total liquidity
+    const totalLinesLiquidity = (db.cashLines || []).reduce((sum, l) => sum + (l.balance || 0), 0);
+    if (customerVault && Math.abs(customerVault.balance - totalLinesLiquidity) > 0.01) {
+      customerVault.balance = totalLinesLiquidity;
+    }
+
+    const summary = {
+      totalTreasuryBalance: (mainVault?.balance || 0) + totalSubBalance + (customerVault?.balance || 0),
+      mainVaultBalance: mainVault?.balance || 0,
+      totalSubBalance,
+      customerVaultBalance: customerVault?.balance || 0,
+      subVaultsCount: subVaults.length,
+      activeVaultsCount: vaults.filter(v => v.status === 'active').length,
+    };
+
+    return res.json({ vaults, summary });
+  });
+
+  // 9.2. Get single vault with transaction history
+  app.get('/api/vaults/:id', authMiddleware, (req: Request, res: Response) => {
+    const { id } = req.params;
+    const vault = (db.vaults || []).find(v => v.id === id || v.code === id);
+    if (!vault) {
+      return res.status(404).json({ error: 'الخزنة غير موجودة' });
+    }
+
+    const transactions = (db.vaultTransactions || [])
+      .filter(t => t.sourceVaultId === vault.id || t.targetVaultId === vault.id)
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      .slice(0, 50);
+
+    return res.json({ vault, transactions });
+  });
+
+  // 9.3. Create new Sub-Vault (Admin Only)
+  app.post('/api/vaults', authMiddleware, requireRole(['admin']), (req: Request, res: Response) => {
+    const { name, code, branch, assignedEmployeeId, minBalance, maxBalance, notes } = req.body;
+    const user = (req as any).user as User;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: 'الرجاء إدخال اسم الخزنة الفرعية' });
+    }
+
+    let assignedEmployeeName = '';
+    if (assignedEmployeeId) {
+      const emp = db.users.find(u => u.id === assignedEmployeeId);
+      if (emp) assignedEmployeeName = emp.fullName;
+    }
+
+    const now = new Date().toISOString();
+    const subCount = (db.vaults || []).filter(v => v.type === 'sub').length + 1;
+    const autoCode = code?.trim() || `SUB-${String(subCount).padStart(2, '0')}`;
+
+    const newVault: Vault = {
+      id: `vlt_sub_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      name: name.trim(),
+      code: autoCode,
+      type: 'sub',
+      balance: 0,
+      branch: branch?.trim() || 'المركز الرئيسي',
+      assignedEmployeeId: assignedEmployeeId || undefined,
+      assignedEmployeeName: assignedEmployeeName || undefined,
+      status: 'active',
+      minBalance: Number(minBalance) || 20000,
+      maxBalance: Number(maxBalance) || 1000000,
+      totalIn: 0,
+      totalOut: 0,
+      notes: notes || '',
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    db.vaults.push(newVault);
+    logAudit(
+      { id: user.id, fullName: user.fullName },
+      'إنشاء خزنة فرعية جديدة',
+      `تم إنشاء الخزنة الفرعية: ${newVault.name} (${newVault.code}) وتعيينها لـ ${assignedEmployeeName || 'بدون موظف'}`
+    );
+    saveDatabaseAsync();
+
+    return res.status(201).json(newVault);
+  });
+
+  // 9.4. Update vault details (Admin / Operations)
+  app.put('/api/vaults/:id', authMiddleware, requireRole(['admin', 'operations']), (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { name, branch, assignedEmployeeId, status, minBalance, maxBalance, notes } = req.body;
+    const user = (req as any).user as User;
+
+    const vault = (db.vaults || []).find(v => v.id === id);
+    if (!vault) {
+      return res.status(404).json({ error: 'الخزنة غير موجودة' });
+    }
+
+    if (name && name.trim()) vault.name = name.trim();
+    if (branch !== undefined) vault.branch = branch.trim();
+    if (status && (status === 'active' || status === 'suspended')) vault.status = status;
+    if (minBalance !== undefined) vault.minBalance = Number(minBalance);
+    if (maxBalance !== undefined) vault.maxBalance = Number(maxBalance);
+    if (notes !== undefined) vault.notes = notes;
+
+    if (assignedEmployeeId !== undefined) {
+      if (assignedEmployeeId) {
+        const emp = db.users.find(u => u.id === assignedEmployeeId);
+        vault.assignedEmployeeId = assignedEmployeeId;
+        vault.assignedEmployeeName = emp?.fullName || '';
+      } else {
+        vault.assignedEmployeeId = undefined;
+        vault.assignedEmployeeName = undefined;
+      }
+    }
+
+    vault.updatedAt = new Date().toISOString();
+    logAudit(
+      { id: user.id, fullName: user.fullName },
+      'تعديل بيانات خزنة',
+      `تم تحديث بيانات الخزنة: ${vault.name} (${vault.code})`
+    );
+    saveDatabaseAsync();
+
+    return res.json(vault);
+  });
+
+  // 9.5. Deposit funds to Main Vault (Admin Only - Capital Injection)
+  app.post('/api/vaults/:id/deposit', authMiddleware, requireRole(['admin']), (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { amount, notes } = req.body;
+    const user = (req as any).user as User;
+
+    const depositAmount = Number(amount);
+    if (isNaN(depositAmount) || depositAmount <= 0) {
+      return res.status(400).json({ error: 'قيمة الإيداع يجب أن تكون أكبر من صفر' });
+    }
+
+    const vault = (db.vaults || []).find(v => v.id === id);
+    if (!vault) {
+      return res.status(404).json({ error: 'الخزنة غير موجودة' });
+    }
+
+    if (vault.type !== 'main') {
+      return res.status(400).json({ error: 'الإيداع الرأسمالي المباشر مسموح به في الخزنة المركزية الرئيسية فقط' });
+    }
+
+    const now = new Date();
+    const datePrefix = now.toISOString().slice(0, 10).replace(/-/g, '');
+    const prevBalance = vault.balance;
+    vault.balance += depositAmount;
+    vault.totalIn += depositAmount;
+    vault.lastTransactionAt = now.toISOString();
+    vault.lastTransactionType = 'deposit_main';
+    vault.lastTransactionAmount = depositAmount;
+    vault.updatedAt = now.toISOString();
+
+    const vaultTx: VaultTransaction = {
+      id: `vtx_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      referenceNumber: `VTX-${datePrefix}-${Math.floor(1000 + Math.random() * 9000)}`,
+      timestamp: now.toISOString(),
+      type: 'deposit_main',
+      targetVaultId: vault.id,
+      targetVaultName: vault.name,
+      amount: depositAmount,
+      targetBalanceBefore: prevBalance,
+      targetBalanceAfter: vault.balance,
+      operatorId: user.id,
+      operatorName: user.fullName,
+      status: 'completed',
+      notes: notes || 'توريد سيولة نقدية جديدة للخزنة الرئيسية',
+      createdAt: now.toISOString(),
+    };
+
+    db.vaultTransactions.unshift(vaultTx);
+    logAudit(
+      { id: user.id, fullName: user.fullName },
+      'إيداع رأسمالي في الخزنة الرئيسية',
+      `تم إيداع مبلغ ${depositAmount.toLocaleString()} ${db.settings.currency} في الخزنة المركزية (${vault.name})`
+    );
+    saveDatabaseAsync();
+
+    return res.status(201).json({ success: true, vault, transaction: vaultTx });
+  });
+
+  // 9.6. Atomic Double-Entry Transfer between Vaults
+  app.post('/api/vaults/transfer', authMiddleware, requireRole(['admin', 'operations']), (req: Request, res: Response) => {
+    const { sourceVaultId, targetVaultId, amount, notes, idempotencyKey } = req.body;
+    const user = (req as any).user as User;
+
+    if (idempotencyKey) {
+      const existing = (db.vaultTransactions || []).find(t => t.idempotencyKey === idempotencyKey);
+      if (existing) return res.json({ success: true, transaction: existing });
+    }
+
+    const transferAmount = Number(amount);
+    if (isNaN(transferAmount) || transferAmount <= 0) {
+      return res.status(400).json({ error: 'قيمة التحويل يجب أن تكون أكبر من صفر' });
+    }
+
+    if (!sourceVaultId || !targetVaultId) {
+      return res.status(400).json({ error: 'الرجاء تحديد الخزنة المصدر والخزنة الوجهة' });
+    }
+
+    if (sourceVaultId === targetVaultId) {
+      return res.status(400).json({ error: 'لا يمكن التحويل من وإلى نفس الخزنة' });
+    }
+
+    const sourceVault = (db.vaults || []).find(v => v.id === sourceVaultId);
+    const targetVault = (db.vaults || []).find(v => v.id === targetVaultId);
+
+    if (!sourceVault || !targetVault) {
+      return res.status(404).json({ error: 'إحدى الخزائن المختارة غير موجودة' });
+    }
+
+    if (sourceVault.status !== 'active') {
+      return res.status(400).json({ error: `الخزنة المصدر (${sourceVault.name}) موقوفة حالياً ولا يمكن الصرف منها` });
+    }
+
+    if (targetVault.status !== 'active') {
+      return res.status(400).json({ error: `الخزنة الوجهة (${targetVault.name}) موقوفة حالياً` });
+    }
+
+    // Strict Non-Negative Balance Rule
+    if (sourceVault.balance < transferAmount) {
+      return res.status(400).json({
+        error: `رصيد الخزنة المصدر (${sourceVault.name}: ${sourceVault.balance.toLocaleString()} ${db.settings.currency}) غير كافٍ لتحويل ${transferAmount.toLocaleString()} ${db.settings.currency}. يُمنع الرصيد السالب بشكل قاطع.`,
+      });
+    }
+
+    // Max balance check on target if defined
+    if (targetVault.maxBalance && (targetVault.balance + transferAmount) > targetVault.maxBalance) {
+      return res.status(400).json({
+        error: `الرصيد بعد التحويل سيتجاوز الحد الأقصى المسموح به للخزنة الوجهة (${targetVault.maxBalance.toLocaleString()} ${db.settings.currency})`,
+      });
+    }
+
+    // Determine transaction type
+    let txType: VaultTransactionType = 'adjustment';
+    if (sourceVault.type === 'main' && targetVault.type === 'sub') {
+      txType = 'transfer_main_to_sub';
+    } else if (sourceVault.type === 'sub' && targetVault.type === 'main') {
+      txType = 'transfer_sub_to_main';
+    } else if (targetVault.type === 'customer') {
+      txType = 'allocate_customer_vault';
+    }
+
+    const now = new Date();
+    const datePrefix = now.toISOString().slice(0, 10).replace(/-/g, '');
+
+    const sourceBefore = sourceVault.balance;
+    const targetBefore = targetVault.balance;
+
+    // ATOMIC DOUBLE-ENTRY BALANCE MUTATION
+    sourceVault.balance -= transferAmount;
+    sourceVault.totalOut += transferAmount;
+    sourceVault.lastTransactionAt = now.toISOString();
+    sourceVault.lastTransactionType = txType;
+    sourceVault.lastTransactionAmount = transferAmount;
+    sourceVault.updatedAt = now.toISOString();
+
+    targetVault.balance += transferAmount;
+    targetVault.totalIn += transferAmount;
+    targetVault.lastTransactionAt = now.toISOString();
+    targetVault.lastTransactionType = txType;
+    targetVault.lastTransactionAmount = transferAmount;
+    targetVault.updatedAt = now.toISOString();
+
+    // Auto update allocatedBalance on Main Vault
+    const subVaults = (db.vaults || []).filter(v => v.type === 'sub');
+    const mainVault = (db.vaults || []).find(v => v.type === 'main');
+    if (mainVault) {
+      mainVault.allocatedBalance = subVaults.reduce((s, v) => s + v.balance, 0);
+    }
+
+    const vaultTx: VaultTransaction = {
+      id: `vtx_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      referenceNumber: `VTX-${datePrefix}-${Math.floor(1000 + Math.random() * 9000)}`,
+      timestamp: now.toISOString(),
+      type: txType,
+      sourceVaultId: sourceVault.id,
+      sourceVaultName: sourceVault.name,
+      targetVaultId: targetVault.id,
+      targetVaultName: targetVault.name,
+      amount: transferAmount,
+      sourceBalanceBefore: sourceBefore,
+      sourceBalanceAfter: sourceVault.balance,
+      targetBalanceBefore: targetBefore,
+      targetBalanceAfter: targetVault.balance,
+      operatorId: user.id,
+      operatorName: user.fullName,
+      status: 'completed',
+      notes: notes || `تحويل بين الخزن من ${sourceVault.name} إلى ${targetVault.name}`,
+      idempotencyKey,
+      createdAt: now.toISOString(),
+    };
+
+    db.vaultTransactions.unshift(vaultTx);
+    logAudit(
+      { id: user.id, fullName: user.fullName },
+      'تحويل نقدية بين الخزن',
+      `تم تحويل مبلغ ${transferAmount.toLocaleString()} ${db.settings.currency} من (${sourceVault.name}) إلى (${targetVault.name}) برقم مرجعي ${vaultTx.referenceNumber}`
+    );
+    saveDatabaseAsync();
+
+    return res.status(201).json({
+      success: true,
+      transaction: vaultTx,
+      sourceVault,
+      targetVault,
+    });
+  });
+
+  // 9.7. Vault Transactions Ledger with Filters
+  app.get('/api/vault-transactions', authMiddleware, (req: Request, res: Response) => {
+    const { vaultId, type, startDate, endDate, page = '1', limit = '15' } = req.query;
+
+    let filtered = [...(db.vaultTransactions || [])];
+
+    if (vaultId && vaultId !== 'all') {
+      filtered = filtered.filter(t => t.sourceVaultId === vaultId || t.targetVaultId === vaultId);
+    }
+
+    if (type && type !== 'all') {
+      filtered = filtered.filter(t => t.type === type);
+    }
+
+    if (startDate && typeof startDate === 'string') {
+      filtered = filtered.filter(t => t.timestamp.slice(0, 10) >= startDate);
+    }
+
+    if (endDate && typeof endDate === 'string') {
+      filtered = filtered.filter(t => t.timestamp.slice(0, 10) <= endDate);
+    }
+
+    filtered.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+    const pageNum = Math.max(1, parseInt(page as string, 10) || 1);
+    const pageSize = Math.max(1, parseInt(limit as string, 10) || 15);
+    const totalCount = filtered.length;
+    const paginated = filtered.slice((pageNum - 1) * pageSize, pageNum * pageSize);
+
+    return res.json({
+      transactions: paginated,
+      totalCount,
+      page: pageNum,
+      pageSize,
+      totalPages: Math.ceil(totalCount / pageSize),
+    });
+  });
+
+  // ==========================================
+  // 10. SHIFT HANDOVER & CUSTODY ENDPOINTS
+  // ==========================================
+
+  // 10.1. List shift handovers
+  app.get('/api/handovers', authMiddleware, (req: Request, res: Response) => {
+    const { vaultId, status } = req.query;
+    let list = [...(db.shiftHandovers || [])];
+
+    if (vaultId && vaultId !== 'all') {
+      list = list.filter(h => h.vaultId === vaultId);
+    }
+
+    if (status && status !== 'all') {
+      list = list.filter(h => h.status === status);
+    }
+
+    list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return res.json(list);
+  });
+
+  // 10.2. Get handover details
+  app.get('/api/handovers/:id', authMiddleware, (req: Request, res: Response) => {
+    const { id } = req.params;
+    const handover = (db.shiftHandovers || []).find(h => h.id === id || h.handoverNumber === id);
+    if (!handover) {
+      return res.status(404).json({ error: 'محضر التسليم غير موجود' });
+    }
+    return res.json(handover);
+  });
+
+  // 10.3. Initiate & Submit Shift Handover
+  app.post('/api/handovers', authMiddleware, (req: Request, res: Response) => {
+    const {
+      vaultId,
+      receivingUserId,
+      shiftStartTime,
+      shiftEndTime,
+      startBalance,
+      totalDeposits,
+      totalWithdrawals,
+      totalTransfersIn,
+      totalTransfersOut,
+      successfulOperationsCount,
+      failedOperationsCount,
+      pendingOperationsCount,
+      actualEndingBalance,
+      lineVerifications,
+      notes,
+    } = req.body;
+
+    const user = (req as any).user as User;
+
+    if (!vaultId || !receivingUserId) {
+      return res.status(400).json({ error: 'الرجاء تحديد الخزنة والموظف المستلم' });
+    }
+
+    const vault = (db.vaults || []).find(v => v.id === vaultId);
+    if (!vault) {
+      return res.status(404).json({ error: 'الخزنة المحددة غير موجودة' });
+    }
+
+    const receivingUser = db.users.find(u => u.id === receivingUserId);
+    if (!receivingUser) {
+      return res.status(404).json({ error: 'الموظف المستلم غير موجود' });
+    }
+
+    if (receivingUser.id === user.id) {
+      return res.status(400).json({ error: 'لا يمكن تسليم النوبة لنفس الموظف المسلّم' });
+    }
+
+    const numStart = Number(startBalance) || 0;
+    const numDeposits = Number(totalDeposits) || 0;
+    const numWithdrawals = Number(totalWithdrawals) || 0;
+    const numTransfersIn = Number(totalTransfersIn) || 0;
+    const numTransfersOut = Number(totalTransfersOut) || 0;
+    const numActual = Number(actualEndingBalance) || 0;
+
+    // Strict Accounting Formula: Expected = Start + Deposits + In - Withdrawals - Out
+    const expectedEndingBalance = numStart + numDeposits + numTransfersIn - numWithdrawals - numTransfersOut;
+    const differenceAmount = numActual - expectedEndingBalance;
+
+    let differenceStatus: 'matched' | 'deficit' | 'surplus' = 'matched';
+    if (differenceAmount > 0.01) {
+      differenceStatus = 'surplus';
+    } else if (differenceAmount < -0.01) {
+      differenceStatus = 'deficit';
+    }
+
+    const now = new Date();
+    const datePrefix = now.toISOString().slice(0, 10).replace(/-/g, '');
+    const handoverCount = (db.shiftHandovers || []).length + 1;
+    const handoverNumber = `HND-${datePrefix}-${String(handoverCount).padStart(4, '0')}`;
+
+    const newHandover: ShiftHandover = {
+      id: `hnd_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      handoverNumber,
+      vaultId: vault.id,
+      vaultName: vault.name,
+      branch: vault.branch || 'الفرع الرئيسي',
+      deliveringUserId: user.id,
+      deliveringUserName: user.fullName,
+      receivingUserId: receivingUser.id,
+      receivingUserName: receivingUser.fullName,
+      shiftStartTime: shiftStartTime || new Date(now.getTime() - 8 * 3600 * 1000).toISOString(),
+      shiftEndTime: shiftEndTime || now.toISOString(),
+      startBalance: numStart,
+      totalDeposits: numDeposits,
+      totalWithdrawals: numWithdrawals,
+      totalTransfersIn: numTransfersIn,
+      totalTransfersOut: numTransfersOut,
+      successfulOperationsCount: Number(successfulOperationsCount) || 0,
+      failedOperationsCount: Number(failedOperationsCount) || 0,
+      pendingOperationsCount: Number(pendingOperationsCount) || 0,
+      expectedEndingBalance,
+      actualEndingBalance: numActual,
+      differenceAmount,
+      differenceStatus,
+      lineVerifications: Array.isArray(lineVerifications) ? lineVerifications : [],
+      notes: notes || '',
+      deliveringConfirmedAt: now.toISOString(),
+      status: 'pending_receiver_approval',
+      createdAt: now.toISOString(),
+      updatedAt: now.toISOString(),
+    };
+
+    db.shiftHandovers.unshift(newHandover);
+    logAudit(
+      { id: user.id, fullName: user.fullName },
+      'تقديم محضر تسليم نوبة وخزنة',
+      `تم تقديم محضر تسليم للخزنة (${vault.name}) من ${user.fullName} إلى ${receivingUser.fullName} برقم ${handoverNumber} - الفرق: ${differenceAmount} ج.م`
+    );
+    saveDatabaseAsync();
+
+    return res.status(201).json(newHandover);
+  });
+
+  // 10.4. Receiving Employee Accepts Handover -> Transfers Vault Custody!
+  app.post('/api/handovers/:id/accept', authMiddleware, (req: Request, res: Response) => {
+    const { id } = req.params;
+    const user = (req as any).user as User;
+
+    const handover = (db.shiftHandovers || []).find(h => h.id === id);
+    if (!handover) {
+      return res.status(404).json({ error: 'محضر التسليم غير موجود' });
+    }
+
+    if (handover.status !== 'pending_receiver_approval') {
+      return res.status(400).json({ error: `لا يمكن قبول المحضر وهو بالحالة: ${handover.status}` });
+    }
+
+    // Permission check: only assigned receiving employee or admin
+    if (handover.receivingUserId !== user.id && user.role !== 'admin') {
+      return res.status(403).json({ error: 'عذراً، هذا المحضر موجه إلى موظف آخر للاستلام' });
+    }
+
+    const now = new Date().toISOString();
+    handover.receivingConfirmedAt = now;
+    handover.status = 'completed';
+    handover.updatedAt = now;
+
+    // TRANSFER VAULT CUSTODY & RESPONSIBILITY
+    const vault = (db.vaults || []).find(v => v.id === handover.vaultId);
+    if (vault) {
+      vault.assignedEmployeeId = handover.receivingUserId;
+      vault.assignedEmployeeName = handover.receivingUserName;
+      vault.balance = handover.actualEndingBalance;
+      vault.updatedAt = now;
+    }
+
+    logAudit(
+      { id: user.id, fullName: user.fullName },
+      'استلام واعتماد محضر نوبة',
+      `قام الموظف ${user.fullName} بتأكيد استلام عهدة الخزنة (${handover.vaultName}) برقم ${handover.handoverNumber}`
+    );
+    saveDatabaseAsync();
+
+    return res.json({ success: true, handover, vault });
+  });
+
+  // 10.5. Receiving Employee Rejects Handover
+  app.post('/api/handovers/:id/reject', authMiddleware, (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { reason } = req.body;
+    const user = (req as any).user as User;
+
+    const handover = (db.shiftHandovers || []).find(h => h.id === id);
+    if (!handover) {
+      return res.status(404).json({ error: 'محضر التسليم غير موجود' });
+    }
+
+    if (handover.receivingUserId !== user.id && user.role !== 'admin') {
+      return res.status(403).json({ error: 'غير مصرح لك برفض هذا المحضر' });
+    }
+
+    const now = new Date().toISOString();
+    handover.status = 'rejected';
+    handover.rejectionReason = reason?.trim() || 'عدم تطابق الجرد الفعلي مع الحسابات';
+    handover.updatedAt = now;
+
+    logAudit(
+      { id: user.id, fullName: user.fullName },
+      'رفض محضر استلام عهدة',
+      `تم رفض محضر الاستلام ${handover.handoverNumber} بواسطة ${user.fullName}. السبب: ${handover.rejectionReason}`
+    );
+    saveDatabaseAsync();
+
+    return res.json({ success: true, handover });
+  });
+
+  // 10.6. Manager Approval for Discrepancy
+  app.post('/api/handovers/:id/manager-approve', authMiddleware, requireRole(['admin', 'operations']), (req: Request, res: Response) => {
+    const { id } = req.params;
+    const user = (req as any).user as User;
+
+    const handover = (db.shiftHandovers || []).find(h => h.id === id);
+    if (!handover) {
+      return res.status(404).json({ error: 'محضر التسليم غير موجود' });
+    }
+
+    const now = new Date().toISOString();
+    handover.managerApprovedAt = now;
+    handover.managerApprovedById = user.id;
+    handover.managerApprovedByName = user.fullName;
+    handover.status = 'completed';
+    handover.updatedAt = now;
+
+    logAudit(
+      { id: user.id, fullName: user.fullName },
+      'اعتماد إداري لمحضر تسليم بعجز/زيادة',
+      `تم اعتماد الفروق المالية للمحضر ${handover.handoverNumber} إدارياً بواسطة ${user.fullName}`
+    );
+    saveDatabaseAsync();
+
+    return res.json({ success: true, handover });
   });
 
   // Desktop Package Download Endpoint
