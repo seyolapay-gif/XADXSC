@@ -81,6 +81,9 @@ export const TransfersLogView: React.FC<TransfersLogViewProps> = ({
 
   useEffect(() => {
     loadData(1);
+    const handleGlobalRefresh = () => loadData(1);
+    window.addEventListener('app:global-refresh', handleGlobalRefresh);
+    return () => window.removeEventListener('app:global-refresh', handleGlobalRefresh);
   }, [transferType, status, sourceLineId]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -122,27 +125,24 @@ export const TransfersLogView: React.FC<TransfersLogViewProps> = ({
       
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-slate-900/60 p-5 rounded-3xl border border-slate-800">
-        <div>
-          <h1 className="text-2xl font-black text-white tracking-tight flex items-center gap-2">
-            سجل التحويلات والعمليات
-            <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 font-mono font-semibold">
-              {totalCount} عملية مسجلة
-            </span>
-          </h1>
-          <p className="text-xs text-slate-400 mt-1">
-            البحث المتقدم، استعراض تفاصيل العمليات، وتصدير التقارير وطباعة الإيصالات المالية
-          </p>
+        <div className="flex items-center gap-3.5">
+          <div className="w-12 h-12 rounded-2xl bg-slate-800 border border-slate-700/80 flex items-center justify-center p-1.5 shadow-md shadow-emerald-500/10 shrink-0">
+            <img src="/logo.png" alt="Seolah" className="w-full h-full object-contain" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-black text-white tracking-tight flex items-center gap-2">
+              سجل التحويلات والعمليات
+              <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 font-mono font-semibold">
+                {totalCount} عملية مسجلة
+              </span>
+            </h1>
+            <p className="text-xs text-slate-400 mt-1">
+              منظومة سيولة (Seyola) · البحث المتقدم، استعراض تفاصيل العمليات، وتصدير التقارير وطباعة الإيصالات المالية
+            </p>
+          </div>
         </div>
 
         <div className="flex items-center gap-3 w-full sm:w-auto">
-          <button
-            onClick={() => loadData(page)}
-            className="p-2.5 bg-slate-800/80 hover:bg-slate-700 text-slate-300 rounded-xl transition border border-slate-700/60"
-            title="تحديث الجدول"
-          >
-            <RefreshCw className="w-4 h-4" />
-          </button>
-
           <button
             onClick={handleExportCSV}
             className="flex-1 sm:flex-none px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl border border-slate-700 flex items-center justify-center gap-2 transition text-xs cursor-pointer"

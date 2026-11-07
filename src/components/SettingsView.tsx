@@ -25,13 +25,19 @@ import {
   Info,
   RefreshCw,
   X,
-  Check
+  Check,
+  GitCompareArrows
 } from 'lucide-react';
 import { TypographySettingsSection } from './TypographySettingsSection';
+import { ReconciliationView } from './ReconciliationView';
 
-export const SettingsView: React.FC = () => {
+export interface SettingsViewProps {
+  initialTab?: 'typography' | 'financial' | 'reconciliation' | 'backup' | 'reset' | 'desktop';
+}
+
+export const SettingsView: React.FC<SettingsViewProps> = ({ initialTab = 'typography' }) => {
   const { canManageSettings, user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'typography' | 'financial' | 'backup' | 'reset' | 'desktop'>('typography');
+  const [activeTab, setActiveTab] = useState<'typography' | 'financial' | 'reconciliation' | 'backup' | 'reset' | 'desktop'>(initialTab);
 
   const [settings, setSettings] = useState<SystemSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -276,6 +282,27 @@ export const SettingsView: React.FC = () => {
           >
             <Building2 className="w-4 h-4" />
             <span>بيانات المنشأة والحدود المالية</span>
+          </button>
+
+          {/* Tab 3: Reconciliation (مقارنة العمليات) */}
+          <button
+            type="button"
+            onClick={() => setActiveTab('reconciliation')}
+            className={`flex items-center gap-2.5 px-4 sm:px-5 py-3 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+              activeTab === 'reconciliation'
+                ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white border-emerald-500/60 shadow-lg shadow-emerald-950/60'
+                : 'bg-slate-900/60 text-slate-400 hover:text-white border-transparent hover:bg-slate-800/60'
+            }`}
+          >
+            <GitCompareArrows className="w-4 h-4 text-emerald-400" />
+            <span>مقارنة العمليات والمطابقة</span>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] ${
+              activeTab === 'reconciliation' 
+                ? 'bg-emerald-400/25 text-emerald-100 border border-emerald-400/30 font-bold' 
+                : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+            }`}>
+              OCR ذكي
+            </span>
           </button>
 
           {/* Tab 3: Backup & Restore */}
@@ -809,6 +836,13 @@ export const SettingsView: React.FC = () => {
             </span>
           </div>
 
+        </div>
+      )}
+
+      {/* TAB: Reconciliation System (مقارنة العمليات) */}
+      {activeTab === 'reconciliation' && (
+        <div className="pt-1 animate-in fade-in">
+          <ReconciliationView onBackToDashboard={() => setActiveTab('financial')} />
         </div>
       )}
 

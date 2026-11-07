@@ -125,13 +125,18 @@ export const ReportsView: React.FC = () => {
       
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-slate-900/60 p-5 rounded-3xl border border-slate-800">
-        <div>
-          <h1 className="text-2xl font-black text-white tracking-tight flex items-center gap-2">
-            مركز التقارير المالية والإحصائيات
-          </h1>
-          <p className="text-xs text-slate-400 mt-1">
-            كشوف الحسابات الدورية، تحليل العمولات والأرباح، ومعدلات كفاءة موظفي التحويلات
-          </p>
+        <div className="flex items-center gap-3.5">
+          <div className="w-12 h-12 rounded-2xl bg-slate-800 border border-slate-700/80 flex items-center justify-center p-1.5 shadow-md shadow-emerald-500/10 shrink-0">
+            <img src="/logo.png" alt="Seolah" className="w-full h-full object-contain" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-black text-white tracking-tight flex items-center gap-2">
+              مركز التقارير المالية والإحصائيات
+            </h1>
+            <p className="text-xs text-slate-400 mt-1">
+              منظومة سيولة (Seyola) · كشوف الحسابات الدورية، تحليل العمولات والأرباح ومطابقة العمليات
+            </p>
+          </div>
         </div>
 
         <div className="flex items-center gap-2 w-full sm:w-auto">

@@ -11,6 +11,7 @@ import {
   Server,
   Radio
 } from 'lucide-react';
+import { formatTime } from '../utils/formatters';
 
 export type ConnectionQuality = 'excellent' | 'good' | 'fair' | 'poor' | 'offline';
 
@@ -308,8 +309,8 @@ export const ConnectionStatusBadge: React.FC<ConnectionStatusBadgeProps> = ({
 
           {/* Bottom Actions and Info */}
           <div className="flex items-center justify-between pt-2 border-t border-slate-800/80 text-[10px] text-slate-500">
-            <span>
-              آخر فحص: {lastChecked.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+            <span className="font-mono">
+              آخر فحص: {formatTime(lastChecked)}
             </span>
 
             <button

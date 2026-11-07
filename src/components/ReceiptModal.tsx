@@ -121,8 +121,8 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
         {/* Top Header Bar */}
         <div className="px-3.5 py-2 bg-slate-950 border-b border-slate-800 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center shadow-inner">
-              <Receipt className="w-3.5 h-3.5 text-emerald-400" />
+            <div className="w-8 h-8 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center p-1 shadow-inner">
+              <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
             </div>
             <div>
               <div className="flex items-center gap-1.5">
@@ -205,20 +205,23 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
             <span className="absolute top-4 right-12 text-emerald-300 text-[8px] select-none pointer-events-none">✦</span>
             <span className="absolute top-7 right-8 text-emerald-400 text-[10px] select-none pointer-events-none">✦</span>
 
-            {/* Top Large Layered Checkmark Badge */}
+            {/* Top Official Receipt Header with Logo */}
             <div className="relative pt-0.5 text-center">
-              <div className="relative mx-auto w-12 h-12 sm:w-13 sm:h-13 rounded-full bg-emerald-100/60 border border-emerald-200/70 flex items-center justify-center p-1 shadow-xs">
-                <div className="w-full h-full rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-md shadow-emerald-500/25">
-                  <Check className="w-5 h-5 stroke-[3.5] text-white" />
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-center p-1 shadow-xs">
+                  <img src="/logo.png" alt="Seolah" className="w-full h-full object-contain" />
+                </div>
+                <div className="w-7 h-7 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-xs">
+                  <Check className="w-4 h-4 stroke-[3.5] text-white" />
                 </div>
               </div>
 
               {/* Title & Subtitle */}
-              <h1 className="text-xs sm:text-sm font-black tracking-tight text-slate-900 mt-1.5 leading-tight">
-                منظومة إدارة الكاش والتحويلات المالية
+              <h1 className="text-xs sm:text-sm font-black tracking-tight text-slate-900 leading-tight">
+                منظومة سيولة لإدارة الكاش والتحويلات المالية
               </h1>
               <p className="text-[9.5px] sm:text-[10px] text-slate-500 font-medium mt-0.5">
-                إشعار تسجيل وقيد مالي إلكتروني رسمي معتمد
+                إشعار تسجيل وقيد مالي إلكتروني رسمي معتمد · Seyola
               </p>
             </div>
 
@@ -294,9 +297,22 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
                 </div>
               </div>
 
+              {/* Provider Commission if present */}
+              {transfer.commission !== undefined && transfer.commission > 0 && (
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-700 font-bold text-[10px] sm:text-[10.5px]">عمولة التحويل (المشغل):</span>
+                  <div className="text-left font-bold font-mono text-emerald-600 text-xs sm:text-[13px]">
+                    <span dir="ltr">+{formatAmount(transfer.commission)}</span>
+                    <span className="text-[9.5px] text-slate-500 font-sans mr-0.5">ج.م</span>
+                  </div>
+                </div>
+              )}
+
               {/* Service Fee */}
               <div className="flex items-center justify-between">
-                <span className="text-slate-700 font-bold text-[10px] sm:text-[10.5px]">رسوم الخدمة والعمولة:</span>
+                <span className="text-slate-700 font-bold text-[10px] sm:text-[10.5px]">
+                  {isReceive ? 'عمولة الاستلام والخدمة:' : 'رسوم التحويل:'}
+                </span>
                 <div className="text-left font-bold font-mono text-emerald-600 text-xs sm:text-[13px]">
                   <span dir="ltr">+{formatAmount(transfer.fee)}</span>
                   <span className="text-[9.5px] text-slate-500 font-sans mr-0.5">ج.م</span>

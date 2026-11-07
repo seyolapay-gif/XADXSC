@@ -127,6 +127,9 @@ export const CashLinesView: React.FC<CashLinesViewProps> = ({
 
   useEffect(() => {
     loadLines();
+    const handleGlobalRefresh = () => loadLines();
+    window.addEventListener('app:global-refresh', handleGlobalRefresh);
+    return () => window.removeEventListener('app:global-refresh', handleGlobalRefresh);
   }, []);
 
   const openAddModal = () => {
@@ -395,14 +398,6 @@ export const CashLinesView: React.FC<CashLinesViewProps> = ({
         </div>
 
         <div className="flex items-center gap-2.5 w-full sm:w-auto">
-          <button
-            onClick={() => loadLines()}
-            className="p-2 bg-slate-800/80 hover:bg-slate-700 text-slate-300 rounded-xl transition border border-slate-700/60 cursor-pointer"
-            title="تحديث القائمة"
-          >
-            <RefreshCw className="w-4 h-4" />
-          </button>
-
           {canManageLines && (
             <button
               onClick={openAddModal}

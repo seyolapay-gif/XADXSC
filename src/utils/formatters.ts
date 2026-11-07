@@ -21,12 +21,12 @@ export function parseEnglishNumber(val: string | number | null | undefined): num
 }
 
 // Format financial amount with thousands separators in English digits (e.g., "145,000" or "1,250.50")
-export function formatAmount(val: number | string | null | undefined): string {
+export function formatAmount(val: number | string | null | undefined, decimals?: number): string {
   if (val === null || val === undefined) return '0';
   const num = typeof val === 'number' ? val : parseEnglishNumber(val);
   const formatted = new Intl.NumberFormat('en-US', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
+    minimumFractionDigits: decimals !== undefined ? decimals : 0,
+    maximumFractionDigits: decimals !== undefined ? decimals : 2,
     useGrouping: true,
   }).format(num);
   return toEnglishDigits(formatted);

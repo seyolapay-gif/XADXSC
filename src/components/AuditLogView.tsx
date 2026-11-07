@@ -42,6 +42,9 @@ export const AuditLogView: React.FC = () => {
 
   useEffect(() => {
     loadLogs();
+    const handleGlobalRefresh = () => loadLogs();
+    window.addEventListener('app:global-refresh', handleGlobalRefresh);
+    return () => window.removeEventListener('app:global-refresh', handleGlobalRefresh);
   }, []);
 
   const safeLogs = Array.isArray(logs) ? logs : [];
@@ -94,16 +97,6 @@ export const AuditLogView: React.FC = () => {
             توثيق رقمي مشفر لكافة الإجراءات الإدارية والعمليات المالية والتحويلات وتعديلات الصلاحيات وفق المعايير المصرفية
           </p>
         </div>
-
-        <button
-          onClick={() => loadLogs()}
-          disabled={isLoading}
-          className="px-4 py-2.5 bg-slate-800/90 hover:bg-slate-700 text-slate-200 rounded-xl transition border border-slate-700/60 flex items-center gap-2 text-xs font-bold cursor-pointer disabled:opacity-50"
-          title="تحديث السجل فورياً"
-        >
-          <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin text-emerald-400' : ''}`} />
-          <span>تحديث السجل</span>
-        </button>
       </div>
 
       {error && (

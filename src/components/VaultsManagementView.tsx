@@ -6,6 +6,12 @@ import {
   SystemSettings 
 } from '../types';
 import { api } from '../services/api';
+import { 
+  formatAmount, 
+  formatCount, 
+  formatDateTime, 
+  formatTime 
+} from '../utils/formatters';
 
 interface VaultsManagementViewProps {
   currentUser: User;
@@ -67,6 +73,9 @@ export const VaultsManagementView: React.FC<VaultsManagementViewProps> = ({
 
   useEffect(() => {
     loadData();
+    const handleGlobalRefresh = () => loadData();
+    window.addEventListener('app:global-refresh', handleGlobalRefresh);
+    return () => window.removeEventListener('app:global-refresh', handleGlobalRefresh);
   }, []);
 
   // Filtered Sub-Vaults
@@ -143,17 +152,6 @@ export const VaultsManagementView: React.FC<VaultsManagementViewProps> = ({
 
         {/* Global Action Buttons */}
         <div className="flex items-center flex-wrap gap-2.5">
-          <button
-            onClick={() => loadData()}
-            className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition-all border border-slate-700/60 flex items-center gap-1.5 cursor-pointer"
-            title="تحديث البيانات"
-          >
-            <svg className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            تحديث
-          </button>
-
           {canManage && (
             <button
               onClick={() => handleOpenTransfer()}
@@ -260,8 +258,8 @@ export const VaultsManagementView: React.FC<VaultsManagementViewProps> = ({
 
                 <div className="text-left">
                   <span className="text-xs text-slate-400 block font-medium">الرصيد المتاح المركزي</span>
-                  <div className="text-2xl sm:text-3xl font-black text-emerald-400 tracking-tight mt-0.5">
-                    {mainVault.balance.toLocaleString('ar-EG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  <div className="text-2xl sm:text-3xl font-black text-emerald-400 tracking-tight font-mono mt-0.5">
+                    {formatAmount(mainVault.balance, 2)}
                     <span className="text-xs font-bold text-slate-400 mr-1.5">{settings.currency}</span>
                   </div>
                 </div>
@@ -271,24 +269,24 @@ export const VaultsManagementView: React.FC<VaultsManagementViewProps> = ({
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 my-5">
                 <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
                   <span className="text-[11px] text-slate-400 block mb-1">المخصص للخزن الفرعية</span>
-                  <div className="text-base font-black text-amber-400">
-                    {(mainVault.allocatedBalance || 0).toLocaleString()} {settings.currency}
+                  <div className="text-base font-black text-amber-400 font-mono">
+                    {formatAmount(mainVault.allocatedBalance || 0)} {settings.currency}
                   </div>
                   <span className="text-[10px] text-slate-500 block mt-0.5">وفقاً لسجلات الفروع</span>
                 </div>
 
                 <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
                   <span className="text-[11px] text-slate-400 block mb-1">إجمالي التوريدات (الوارد)</span>
-                  <div className="text-base font-black text-emerald-400">
-                    {(mainVault.totalIn || 0).toLocaleString()} {settings.currency}
+                  <div className="text-base font-black text-emerald-400 font-mono">
+                    {formatAmount(mainVault.totalIn || 0)} {settings.currency}
                   </div>
                   <span className="text-[10px] text-slate-500 block mt-0.5">رأس المال والتحويلات</span>
                 </div>
 
                 <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800 col-span-2 sm:col-span-1">
                   <span className="text-[11px] text-slate-400 block mb-1">إجمالي الصادر للفروع</span>
-                  <div className="text-base font-black text-rose-400">
-                    {(mainVault.totalOut || 0).toLocaleString()} {settings.currency}
+                  <div className="text-base font-black text-rose-400 font-mono">
+                    {formatAmount(mainVault.totalOut || 0)} {settings.currency}
                   </div>
                   <span className="text-[10px] text-slate-500 block mt-0.5">تحويلات تغذية الفروع</span>
                 </div>
@@ -300,10 +298,10 @@ export const VaultsManagementView: React.FC<VaultsManagementViewProps> = ({
                   <svg className="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  <span>آخر حركة: <strong>{mainVault.lastTransactionAmount ? `${mainVault.lastTransactionAmount.toLocaleString()} ${settings.currency}` : 'لا توجد حركات اليوم'}</strong></span>
+                  <span>آخر حركة: <strong className="font-mono">{mainVault.lastTransactionAmount ? `${formatAmount(mainVault.lastTransactionAmount)} ${settings.currency}` : 'لا توجد حركات اليوم'}</strong></span>
                 </div>
                 <span className="text-[11px] text-slate-400 font-mono">
-                  {mainVault.updatedAt ? new Date(mainVault.updatedAt).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }) : '-'}
+                  {mainVault.updatedAt ? formatTime(mainVault.updatedAt) : '-'}
                 </span>
               </div>
             </div>
@@ -390,8 +388,8 @@ export const VaultsManagementView: React.FC<VaultsManagementViewProps> = ({
               {/* Customer Balance Metric */}
               <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 text-center mb-4">
                 <span className="text-xs text-slate-400 block mb-1">الرصيد الفعلي لسيولة خطوط ومحافظ العملاء</span>
-                <div className="text-2xl sm:text-3xl font-black text-emerald-400 tracking-tight">
-                  {customerVault.balance.toLocaleString('ar-EG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                <div className="text-xl sm:text-2xl font-black text-emerald-400 tracking-tight font-mono">
+                  {formatAmount(customerVault.balance, 2)}
                   <span className="text-xs font-bold text-slate-400 mr-1.5">{settings.currency}</span>
                 </div>
                 <span className="text-[11px] text-emerald-500 block mt-1 font-medium">مطابق 100% لإجمالي أرصدة محافظ الكاش</span>
@@ -543,8 +541,8 @@ export const VaultsManagementView: React.FC<VaultsManagementViewProps> = ({
                           </span>
                         )}
                       </div>
-                      <div className="text-xl font-black text-white">
-                        {vault.balance.toLocaleString('ar-EG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      <div className="text-xl font-black text-white font-mono">
+                        {formatAmount(vault.balance, 2)}
                         <span className="text-xs font-bold text-slate-400 mr-1.5">{settings.currency}</span>
                       </div>
                     </div>
@@ -566,7 +564,7 @@ export const VaultsManagementView: React.FC<VaultsManagementViewProps> = ({
                       <div className="flex items-center justify-between text-[11px]">
                         <span className="text-slate-500">إجمالي الوارد / الصادر:</span>
                         <span className="font-mono text-slate-300">
-                          +{vault.totalIn?.toLocaleString() || 0} / -{vault.totalOut?.toLocaleString() || 0}
+                          +{formatAmount(vault.totalIn || 0)} / -{formatAmount(vault.totalOut || 0)}
                         </span>
                       </div>
                     </div>
@@ -637,20 +635,20 @@ export const VaultsManagementView: React.FC<VaultsManagementViewProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-5 bg-slate-950/40 border-b border-slate-800">
               <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">
                 <span className="text-[11px] text-slate-400 block">الرصيد الفعلي الحالي</span>
-                <span className="text-xl font-black text-emerald-400">
-                  {selectedVaultForDetails.balance.toLocaleString()} {settings.currency}
+                <span className="text-xl font-black text-emerald-400 font-mono">
+                  {formatAmount(selectedVaultForDetails.balance, 2)} {settings.currency}
                 </span>
               </div>
               <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">
                 <span className="text-[11px] text-slate-400 block">إجمالي الوارد</span>
-                <span className="text-base font-black text-blue-400">
-                  +{(selectedVaultForDetails.totalIn || 0).toLocaleString()} {settings.currency}
+                <span className="text-base font-black text-blue-400 font-mono">
+                  +{formatAmount(selectedVaultForDetails.totalIn || 0)} {settings.currency}
                 </span>
               </div>
               <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">
                 <span className="text-[11px] text-slate-400 block">إجمالي المنصرف</span>
-                <span className="text-base font-black text-rose-400">
-                  -{(selectedVaultForDetails.totalOut || 0).toLocaleString()} {settings.currency}
+                <span className="text-base font-black text-rose-400 font-mono">
+                  -{formatAmount(selectedVaultForDetails.totalOut || 0)} {settings.currency}
                 </span>
               </div>
             </div>
@@ -658,7 +656,7 @@ export const VaultsManagementView: React.FC<VaultsManagementViewProps> = ({
             {/* Transactions List */}
             <div className="flex-1 overflow-y-auto p-5 space-y-3">
               <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
-                آخر الحركات المسجلة ({vaultTransactions.length})
+                آخر الحركات المسجلة ({formatCount(vaultTransactions.length)})
               </h4>
 
               {txLoading ? (
@@ -691,14 +689,14 @@ export const VaultsManagementView: React.FC<VaultsManagementViewProps> = ({
                             <div className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-2">
                               <span>بواسطة: {tx.operatorName}</span>
                               <span>•</span>
-                              <span>{new Date(tx.timestamp).toLocaleString('ar-EG')}</span>
+                              <span className="font-mono">{formatDateTime(tx.timestamp)}</span>
                             </div>
                           </div>
                         </div>
 
                         <div className="text-left">
-                          <div className={`text-sm font-black ${isCredit ? 'text-emerald-400' : 'text-rose-400'}`}>
-                            {isCredit ? '+' : '-'}{tx.amount.toLocaleString()} {settings.currency}
+                          <div className={`text-sm font-black font-mono ${isCredit ? 'text-emerald-400' : 'text-rose-400'}`}>
+                            {isCredit ? '+' : '-'}{formatAmount(tx.amount)} {settings.currency}
                           </div>
                           <span className="text-[10px] text-slate-500 block">
                             {tx.type}
@@ -828,7 +826,7 @@ const TransferBetweenVaultsModal: React.FC<TransferModalProps> = ({
         numAmount,
         notes.trim() || undefined
       );
-      onSuccess(`تم تحويل ${numAmount.toLocaleString()} ${currency} بنجاح من ${res.sourceVault.name} إلى ${res.targetVault.name}`);
+      onSuccess(`تم تحويل ${formatAmount(numAmount)} ${currency} بنجاح من ${res.sourceVault.name} إلى ${res.targetVault.name}`);
     } catch (err: any) {
       setError(err?.message || 'فشل تنفيذ التحويل');
     } finally {
@@ -875,17 +873,17 @@ const TransferBetweenVaultsModal: React.FC<TransferModalProps> = ({
                   if (other) setTargetId(other.id);
                 }
               }}
-              className="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-blue-500"
+              className="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-blue-500 font-mono"
             >
               {vaults.map((v) => (
                 <option key={v.id} value={v.id}>
-                  {v.name} ({v.code}) - الرصيد: {v.balance.toLocaleString()} {currency}
+                  {v.name} ({v.code}) - الرصيد: {formatAmount(v.balance)} {currency}
                 </option>
               ))}
             </select>
             {sourceVault && (
               <span className="text-[11px] text-emerald-400 block mt-1">
-                الرصيد المتاح: <strong>{sourceVault.balance.toLocaleString()} {currency}</strong>
+                الرصيد المتاح: <strong className="font-mono">{formatAmount(sourceVault.balance)} {currency}</strong>
               </span>
             )}
           </div>
@@ -896,11 +894,11 @@ const TransferBetweenVaultsModal: React.FC<TransferModalProps> = ({
             <select
               value={targetId}
               onChange={(e) => setTargetId(e.target.value)}
-              className="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-blue-500"
+              className="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-blue-500 font-mono"
             >
               {vaults.filter(v => v.id !== sourceId).map((v) => (
                 <option key={v.id} value={v.id}>
-                  {v.name} ({v.code}) - الرصيد الحالي: {v.balance.toLocaleString()} {currency}
+                  {v.name} ({v.code}) - الرصيد الحالي: {formatAmount(v.balance)} {currency}
                 </option>
               ))}
             </select>
@@ -1000,7 +998,7 @@ const DepositMainVaultModal: React.FC<DepositMainModalProps> = ({
       setSubmitting(true);
       setError(null);
       await api.depositToMainVault(mainVault.id, num, notes.trim() || undefined);
-      onSuccess(`تم توريد مبلغ ${num.toLocaleString()} ${currency} إلى الخزنة المركزية الرئيسية بنجاح`);
+      onSuccess(`تم توريد مبلغ ${formatAmount(num)} ${currency} إلى الخزنة المركزية الرئيسية بنجاح`);
     } catch (err: any) {
       setError(err?.message || 'فشل إتمام التوريد');
     } finally {

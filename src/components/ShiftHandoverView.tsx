@@ -8,6 +8,12 @@ import {
   SystemSettings 
 } from '../types';
 import { api } from '../services/api';
+import { 
+  formatAmount, 
+  formatCount, 
+  formatDateTime, 
+  formatTime 
+} from '../utils/formatters';
 
 interface ShiftHandoverViewProps {
   currentUser: User;
@@ -65,6 +71,9 @@ export const ShiftHandoverView: React.FC<ShiftHandoverViewProps> = ({
 
   useEffect(() => {
     loadData();
+    const handleGlobalRefresh = () => loadData();
+    window.addEventListener('app:global-refresh', handleGlobalRefresh);
+    return () => window.removeEventListener('app:global-refresh', handleGlobalRefresh);
   }, []);
 
   const showToast = (msg: string) => {
@@ -123,16 +132,6 @@ export const ShiftHandoverView: React.FC<ShiftHandoverViewProps> = ({
 
         {/* Top Actions */}
         <div className="flex items-center gap-2.5">
-          <button
-            onClick={() => loadData()}
-            className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition-all border border-slate-700 flex items-center gap-1.5 cursor-pointer"
-          >
-            <svg className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            تحديث
-          </button>
-
           <button
             onClick={() => setIsNewHandoverOpen(true)}
             className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold transition-all shadow-md shadow-emerald-900/30 flex items-center gap-1.5 cursor-pointer"
@@ -293,8 +292,8 @@ export const ShiftHandoverView: React.FC<ShiftHandoverViewProps> = ({
                     <tr key={h.id} className="hover:bg-slate-800/40 transition-colors">
                       <td className="p-3.5">
                         <span className="font-mono font-bold text-slate-200 block">{h.handoverNumber}</span>
-                        <span className="text-[10px] text-slate-500">
-                          {new Date(h.createdAt).toLocaleDateString('ar-EG')}
+                        <span className="text-[10px] text-slate-500 font-mono">
+                          {formatDateTime(h.createdAt)}
                         </span>
                       </td>
 
@@ -313,16 +312,16 @@ export const ShiftHandoverView: React.FC<ShiftHandoverViewProps> = ({
 
                       <td className="p-3.5 text-slate-400">
                         <span className="block font-mono text-[11px]">
-                          {new Date(h.shiftEndTime).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
+                          {formatTime(h.shiftEndTime)}
                         </span>
                       </td>
 
                       <td className="p-3.5 text-center">
-                        <div className="text-[11px] text-slate-400">
-                          متوقع: {h.expectedEndingBalance.toLocaleString()} {settings.currency}
+                        <div className="text-[11px] text-slate-400 font-mono">
+                          متوقع: {formatAmount(h.expectedEndingBalance)} {settings.currency}
                         </div>
-                        <div className="font-bold text-white">
-                          فعلي: {h.actualEndingBalance.toLocaleString()} {settings.currency}
+                        <div className="font-bold text-white font-mono">
+                          فعلي: {formatAmount(h.actualEndingBalance)} {settings.currency}
                         </div>
                       </td>
 
@@ -335,12 +334,12 @@ export const ShiftHandoverView: React.FC<ShiftHandoverViewProps> = ({
                             مطابق 100%
                           </span>
                         ) : h.differenceStatus === 'deficit' ? (
-                          <span className="px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[10px] font-bold">
-                            عجز: {Math.abs(h.differenceAmount).toLocaleString()} {settings.currency}
+                          <span className="px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[10px] font-bold font-mono">
+                            عجز: {formatAmount(Math.abs(h.differenceAmount))} {settings.currency}
                           </span>
                         ) : (
-                          <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30 text-[10px] font-bold">
-                            زيادة: +{h.differenceAmount.toLocaleString()} {settings.currency}
+                          <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30 text-[10px] font-bold font-mono">
+                            زيادة: +{formatAmount(h.differenceAmount)} {settings.currency}
                           </span>
                         )}
                       </td>
@@ -712,13 +711,13 @@ const NewShiftHandoverModal: React.FC<NewHandoverModalProps> = ({
                 <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
                   <span>الرصيد الدفتري المتوقع:</span>
                   <span className="font-mono font-bold text-white">
-                    {expectedEndingBalance.toLocaleString()} {currency}
+                    {formatAmount(expectedEndingBalance)} {currency}
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-xs text-slate-400 mb-2">
                   <span>المبلغ الفعلي المدخل:</span>
                   <span className="font-mono font-bold text-emerald-400">
-                    {numActual.toLocaleString()} {currency}
+                    {formatAmount(numActual)} {currency}
                   </span>
                 </div>
 
@@ -730,12 +729,12 @@ const NewShiftHandoverModal: React.FC<NewHandoverModalProps> = ({
                         مطابق 100% (صفر فرق)
                       </span>
                     ) : differenceStatus === 'deficit' ? (
-                      <span className="text-xs font-black text-rose-400 bg-rose-500/20 px-2 py-0.5 rounded border border-rose-500/30">
-                        عجز: {Math.abs(differenceAmount).toLocaleString()} {currency}
+                      <span className="text-xs font-black text-rose-400 bg-rose-500/20 px-2 py-0.5 rounded border border-rose-500/30 font-mono">
+                        عجز: {formatAmount(Math.abs(differenceAmount))} {currency}
                       </span>
                     ) : (
-                      <span className="text-xs font-black text-blue-400 bg-blue-500/20 px-2 py-0.5 rounded border border-blue-500/30">
-                        زيادة: +{differenceAmount.toLocaleString()} {currency}
+                      <span className="text-xs font-black text-blue-400 bg-blue-500/20 px-2 py-0.5 rounded border border-blue-500/30 font-mono">
+                        زيادة: +{formatAmount(differenceAmount)} {currency}
                       </span>
                     )}
                   </div>
@@ -964,22 +963,22 @@ const ReviewHandoverModal: React.FC<ReviewHandoverModalProps> = ({
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800">
               <span className="text-[11px] text-slate-400 block mb-1">رصيد بداية النوبة</span>
-              <div className="text-sm font-black text-white">
-                {handover.startBalance.toLocaleString()} {currency}
+              <div className="text-sm font-black text-white font-mono">
+                {formatAmount(handover.startBalance)} {currency}
               </div>
             </div>
 
             <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800">
               <span className="text-[11px] text-slate-400 block mb-1">الرصيد الدفتري المتوقع</span>
-              <div className="text-sm font-black text-blue-400">
-                {handover.expectedEndingBalance.toLocaleString()} {currency}
+              <div className="text-sm font-black text-blue-400 font-mono">
+                {formatAmount(handover.expectedEndingBalance)} {currency}
               </div>
             </div>
 
             <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 col-span-2 sm:col-span-1">
               <span className="text-[11px] text-slate-400 block mb-1">الرصيد الفعلي بالجرد</span>
-              <div className="text-base font-black text-emerald-400">
-                {handover.actualEndingBalance.toLocaleString()} {currency}
+              <div className="text-base font-black text-emerald-400 font-mono">
+                {formatAmount(handover.actualEndingBalance)} {currency}
               </div>
             </div>
           </div>
@@ -997,16 +996,16 @@ const ReviewHandoverModal: React.FC<ReviewHandoverModalProps> = ({
                 {handover.differenceStatus === 'matched'
                   ? 'الجرد مطابق تماماً للرصيد الدفتري (صفر فرق)'
                   : handover.differenceStatus === 'deficit'
-                  ? `يوجد عجز نقدي بقيمة ${Math.abs(handover.differenceAmount).toLocaleString()} ${currency}`
-                  : `توجد زيادة نقدية بقيمة +${handover.differenceAmount.toLocaleString()} ${currency}`}
+                  ? `يوجد عجز نقدي بقيمة ${formatAmount(Math.abs(handover.differenceAmount))} ${currency}`
+                  : `توجد زيادة نقدية بقيمة +${formatAmount(handover.differenceAmount)} ${currency}`}
               </span>
               {handover.notes && (
                 <span className="text-[11px] opacity-80 block mt-0.5">ملاحظة المسلّم: {handover.notes}</span>
               )}
             </div>
 
-            <span className="text-xs font-black px-2.5 py-1 rounded-lg bg-black/30">
-              {handover.differenceStatus === 'matched' ? 'مطابق' : handover.differenceAmount.toLocaleString() + ' ' + currency}
+            <span className="text-xs font-black px-2.5 py-1 rounded-lg bg-black/30 font-mono">
+              {handover.differenceStatus === 'matched' ? 'مطابق' : (handover.differenceAmount > 0 ? '+' : '') + formatAmount(handover.differenceAmount) + ' ' + currency}
             </span>
           </div>
 
@@ -1030,7 +1029,7 @@ const ReviewHandoverModal: React.FC<ReviewHandoverModalProps> = ({
 
                     <div className="flex items-center gap-3">
                       <span className="font-mono text-emerald-400 font-bold">
-                        {item.systemBalance.toLocaleString()} {currency}
+                        {formatAmount(item.systemBalance)} {currency}
                       </span>
                       <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold">
                         تم التأكيد اليدوي

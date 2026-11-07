@@ -84,6 +84,7 @@ export interface Transfer {
   recipientName: string;
   destinationBankOrWallet: string;
   amount: number;
+  commission?: number;
   fee: number;
   totalAmount: number;
   notes: string;
@@ -106,6 +107,41 @@ export interface AuditLog {
   ipAddress?: string;
 }
 
+export interface TelecomProviderRule {
+  sameNetworkFee: number;
+  crossNetworkPercent: number;
+  crossNetworkMinFee: number;
+  crossNetworkMaxFee: number;
+  freeFirstTransferLimit: number;
+  enableFreeFirstTransfer: boolean;
+  minTransferAmount?: number;
+  maxTransferAmount?: number;
+}
+
+export interface TelecomRulesSettings {
+  vodafone: TelecomProviderRule;
+  etisalat: TelecomProviderRule;
+  orange: TelecomProviderRule;
+  we: TelecomProviderRule;
+  instapayFee: number;
+  defaultReceiveFee: number;
+  defaultTransferFee: number;
+  autoCalculateCommission: boolean;
+  receiveCommissionType?: 'percentage' | 'fixed';
+  receiveCommissionRate?: number;
+}
+
+export interface ReceiptBrandingSettings {
+  headerTitle: string;
+  subTitle: string;
+  receiptNotice: string;
+  phoneContact: string;
+  popupDurationSeconds: number;
+  defaultReceiptFormat: 'thermal' | 'a4';
+  showQrCode: boolean;
+  showOperatorName: boolean;
+}
+
 export interface SystemSettings {
   companyName: string;
   currency: string;
@@ -116,6 +152,11 @@ export interface SystemSettings {
   defaultMonthlyLimit: number;
   integrationsMockMode: boolean;
   allowOverdraft: boolean;
+  telecomRules?: TelecomRulesSettings;
+  receiptSettings?: ReceiptBrandingSettings;
+  requireAdminPinForOverride?: boolean;
+  enforceLineInventoryOnHandover?: boolean;
+  minVaultLiquidityAlertPercent?: number;
 }
 
 export interface DashboardStats {
@@ -183,6 +224,7 @@ export interface OperationSession {
   recipientName: string;
   destinationBankOrWallet: string;
   amount: string;
+  commission?: string;
   fee: string;
   overrideLimit: boolean;
   notes?: string;
@@ -312,4 +354,111 @@ export interface ShiftHandover {
   status: HandoverStatus;
   createdAt: string;
   updatedAt: string;
+}
+
+// ==========================================
+// Transaction Reconciliation System (نظام مقارنة ومطابقة العمليات)
+// ==========================================
+
+export type ReconciliationSourceType = 
+  | 'cash_line' 
+  | 'bank_account' 
+  | 'wallet' 
+  | 'instapay'
+  | 'vault';
+
+export interface ExtractedStatementItem {
+  id: string;
+  sourceImageIndex?: number;
+  phone?: string;
+  date: string; // YYYY-MM-DD
+  time?: string; // HH:mm
+  type: string; // تحويل صادر | استلام وارد | سحب | إيداع | رسوم
+  prevBalance: number; // الرصيد السابق
+  amount: number; // المبلغ
+  fee: number; // مبلغ الخصم / العمولة
+  availableBalance: number; // المبلغ المتاح / الرصيد بعد العملية
+  status: 'completed' | 'failed'; // حالة العملية
+  confidenceScore?: number; // 0-100%
+  needsReview?: boolean;
+  notes?: string;
+  rawText?: string;
+}
+
+export interface DbStatementItem {
+  id: string;
+  referenceNumber: string;
+  phone?: string;
+  date: string;
+  time?: string;
+  type: string;
+  prevBalance: number;
+  amount: number;
+  fee: number;
+  availableBalance: number;
+  status: string;
+  operatorName?: string;
+  rawTransfer?: any;
+}
+
+export type MatchStatus = 
+  | 'matched'               // تطابق كامل
+  | 'mismatched'            // وجود اختلاف في أحد الحقول المالية
+  | 'not_in_db'             // غير مسجلة في البرنامج
+  | 'not_in_statement';     // غير موجودة في الكشف الخارجي
+
+export interface FieldDifference {
+  field: 'date' | 'prevBalance' | 'amount' | 'fee' | 'availableBalance';
+  label: string;
+  statementValue: any;
+  dbValue: any;
+  diffAmount?: number;
+}
+
+export interface ReconciliationRow {
+  id: string;
+  status: MatchStatus;
+  statementItem?: ExtractedStatementItem;
+  dbItem?: DbStatementItem;
+  differences?: FieldDifference[];
+  needsReview?: boolean;
+}
+
+export interface ReconciliationSummary {
+  totalExtracted: number;
+  totalDb: number;
+  matchedCount: number;
+  mismatchedCount: number;
+  notInDbCount: number;
+  notInStatementCount: number;
+  needsReviewCount: number;
+  matchRate: number; // e.g. 95.5%
+}
+
+export interface ReconciliationRecord {
+  id: string;
+  name: string; // اسم المقارنة
+  sourceType: ReconciliationSourceType;
+  sourceId: string;
+  sourceName: string;
+  sourceNumber?: string;
+  provider?: ProviderType;
+  periodType: 'day' | 'range';
+  startDate: string;
+  endDate: string;
+  images: {
+    id: string;
+    name: string;
+    size: number;
+    mimeType: string;
+    previewUrl?: string;
+  }[];
+  extractedItems: ExtractedStatementItem[];
+  dbItems: DbStatementItem[];
+  rows: ReconciliationRow[];
+  summary: ReconciliationSummary;
+  createdAt: string;
+  createdBy: string;
+  createdByName: string;
+  notes?: string;
 }

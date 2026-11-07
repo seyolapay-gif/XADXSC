@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { CashLine, Transfer, TransferType, OperationSession } from '../types';
+import { CashLine, Transfer, TransferType, OperationSession, TelecomRulesSettings } from '../types';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { ProviderBadge, PROVIDER_CONFIG } from './ProviderBadge';
@@ -43,6 +43,149 @@ interface NewTransferViewProps {
   onShowSuccess?: () => void;
 }
 
+/**
+ * Calculates provider transfer commission (عمولة التحويل)
+ * based on Egyptian telecom provider rules:
+ * - Vodafone: 1 EGP to Vodafone Cash; 0.5% (min 1 EGP, max 15 EGP) to other wallets.
+ *   First transfer in month is free (0 EGP) if amount <= 2000 EGP. Min 5, Max 60,000.
+ * - Etisalat: 1.00 EGP to Etisalat Cash; 0.5% (min 1, max 15) to others. First transfer in month free if <= 2000.
+ * - Orange: 1 EGP to Orange Cash; 0.5% (min 1, max 15) to others. First transfer in month free if <= 2000.
+ * - WE Pay: 1 EGP max to WE Pay; 0.5% (min 1, max 15) to others. First transfer in month free if <= 2000.
+ */
+export const calculateProviderCommission = (
+  amount: number,
+  sourceLine?: CashLine,
+  destinationBankOrWallet?: string,
+  recipientNumber?: string,
+  customRules?: TelecomRulesSettings
+): number => {
+  if (!amount || amount <= 0) return 0;
+
+  const provider = sourceLine?.provider || 'vodafone';
+
+  // Determine recipient network
+  let targetNetwork = 'other';
+  const cleanPhone = (recipientNumber || '').replace(/[^\d]/g, '');
+  const cleanDest = destinationBankOrWallet || '';
+
+  if (cleanPhone.startsWith('010') || cleanDest.includes('فودافون')) {
+    targetNetwork = 'vodafone';
+  } else if (cleanPhone.startsWith('011') || cleanDest.includes('اتصالات')) {
+    targetNetwork = 'etisalat';
+  } else if (cleanPhone.startsWith('012') || cleanDest.includes('أورنج') || cleanDest.includes('اورنج')) {
+    targetNetwork = 'orange';
+  } else if (cleanPhone.startsWith('015') || cleanDest.includes('وي') || cleanDest.toLowerCase().includes('we')) {
+    targetNetwork = 'we';
+  } else if (cleanDest.includes('انستاباي') || cleanDest.toLowerCase().includes('instapay')) {
+    targetNetwork = 'instapay';
+  }
+
+  // Check if first transfer in month (and amount <= threshold)
+  const isFirstTransferOfMonth = (sourceLine?.monthCount === 0 || !sourceLine?.monthCount);
+
+  // 1. Vodafone
+  if (provider === 'vodafone' || provider === 'vodafone_vip') {
+    const rule = customRules?.vodafone || {
+      sameNetworkFee: 1,
+      crossNetworkPercent: 0.5,
+      crossNetworkMinFee: 1,
+      crossNetworkMaxFee: 15,
+      freeFirstTransferLimit: 2000,
+      enableFreeFirstTransfer: true,
+    };
+
+    if (isFirstTransferOfMonth && rule.enableFreeFirstTransfer && amount <= rule.freeFirstTransferLimit) {
+      return 0;
+    }
+
+    if (targetNetwork === 'vodafone') {
+      return rule.sameNetworkFee;
+    } else {
+      const raw = amount * (rule.crossNetworkPercent / 100);
+      const fee = Math.min(rule.crossNetworkMaxFee, Math.max(rule.crossNetworkMinFee, raw));
+      return Number(fee.toFixed(2));
+    }
+  }
+
+  // 2. Etisalat
+  if (provider === 'etisalat') {
+    const rule = customRules?.etisalat || {
+      sameNetworkFee: 1,
+      crossNetworkPercent: 0.5,
+      crossNetworkMinFee: 1,
+      crossNetworkMaxFee: 15,
+      freeFirstTransferLimit: 2000,
+      enableFreeFirstTransfer: true,
+    };
+
+    if (isFirstTransferOfMonth && rule.enableFreeFirstTransfer && amount <= rule.freeFirstTransferLimit) {
+      return 0;
+    }
+
+    if (targetNetwork === 'etisalat') {
+      return rule.sameNetworkFee;
+    } else {
+      const raw = amount * (rule.crossNetworkPercent / 100);
+      const fee = Math.min(rule.crossNetworkMaxFee, Math.max(rule.crossNetworkMinFee, raw));
+      return Number(fee.toFixed(2));
+    }
+  }
+
+  // 3. Orange
+  if (provider === 'orange') {
+    const rule = customRules?.orange || {
+      sameNetworkFee: 1,
+      crossNetworkPercent: 0.5,
+      crossNetworkMinFee: 1,
+      crossNetworkMaxFee: 15,
+      freeFirstTransferLimit: 2000,
+      enableFreeFirstTransfer: true,
+    };
+
+    if (isFirstTransferOfMonth && rule.enableFreeFirstTransfer && amount <= rule.freeFirstTransferLimit) {
+      return 0;
+    }
+
+    if (targetNetwork === 'orange') {
+      return rule.sameNetworkFee;
+    } else {
+      const raw = amount * (rule.crossNetworkPercent / 100);
+      const fee = Math.min(rule.crossNetworkMaxFee, Math.max(rule.crossNetworkMinFee, raw));
+      return Number(fee.toFixed(2));
+    }
+  }
+
+  // 4. WE Pay
+  if (provider === 'we') {
+    const rule = customRules?.we || {
+      sameNetworkFee: 1,
+      crossNetworkPercent: 0.5,
+      crossNetworkMinFee: 1,
+      crossNetworkMaxFee: 15,
+      freeFirstTransferLimit: 2000,
+      enableFreeFirstTransfer: true,
+    };
+
+    if (isFirstTransferOfMonth && rule.enableFreeFirstTransfer && amount <= rule.freeFirstTransferLimit) {
+      return 0;
+    }
+
+    if (targetNetwork === 'we') {
+      return rule.sameNetworkFee;
+    } else {
+      const raw = amount * (rule.crossNetworkPercent / 100);
+      const fee = Math.min(rule.crossNetworkMaxFee, Math.max(rule.crossNetworkMinFee, raw));
+      return Number(fee.toFixed(2));
+    }
+  }
+
+  if (targetNetwork === 'instapay' || provider === 'instapay') {
+    return customRules?.instapayFee || 0;
+  }
+
+  return 0;
+};
+
 export const NewTransferView: React.FC<NewTransferViewProps> = ({
   initialLineId,
   initialMode = 'transfer',
@@ -63,6 +206,7 @@ export const NewTransferView: React.FC<NewTransferViewProps> = ({
   const [operationMode, setOperationMode] = useState<'transfer' | 'receive'>(
     activeSession?.mode || initialMode
   );
+  const isReceiving = operationMode === 'receive';
 
   // Modal to switch source line cleanly without ugly select tag
   const [isLineSwitcherOpen, setIsLineSwitcherOpen] = useState(false);
@@ -89,12 +233,18 @@ export const NewTransferView: React.FC<NewTransferViewProps> = ({
   const [amount, setAmount] = useState(
     activeSession?.amount || ''
   );
+  const [commission, setCommission] = useState(
+    activeSession?.commission || '0'
+  );
   const [fee, setFee] = useState(
-    activeSession?.fee || (initialMode === 'receive' ? '0' : '0')
+    activeSession?.fee || '0'
   );
   const [overrideLimit, setOverrideLimit] = useState(
     activeSession?.overrideLimit || false
   );
+
+  // Settings & Telecom Rules State
+  const [telecomRules, setTelecomRules] = useState<TelecomRulesSettings | undefined>(undefined);
 
   // State
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -107,10 +257,14 @@ export const NewTransferView: React.FC<NewTransferViewProps> = ({
   useEffect(() => {
     if (activeSession?.mode) {
       setOperationMode(activeSession.mode);
+      if (activeSession.mode === 'receive') {
+        setCommission('0');
+      }
     } else {
       setOperationMode(initialMode);
       if (initialMode === 'receive') {
         setFee('0');
+        setCommission('0');
         setDestinationBankOrWallet('فودافون كاش');
       }
     }
@@ -118,6 +272,11 @@ export const NewTransferView: React.FC<NewTransferViewProps> = ({
 
   useEffect(() => {
     loadLines();
+    api.getSettings().then((s) => {
+      if (s?.telecomRules) {
+        setTelecomRules(s.telecomRules);
+      }
+    }).catch(() => {});
   }, []);
 
   const isSourceCashWallet = (provider?: string) => {
@@ -149,24 +308,57 @@ export const NewTransferView: React.FC<NewTransferViewProps> = ({
     }
   };
 
+  // Helper to compute receive commission based on settings (Percentage vs Fixed)
+  const computeReceiveFee = (amountNum: number, rules?: TelecomRulesSettings): number => {
+    if (isNaN(amountNum) || amountNum <= 0) return 0;
+    const type = rules?.receiveCommissionType ?? 'percentage';
+    if (type === 'percentage') {
+      const rate = rules?.receiveCommissionRate ?? 1; // Default 1%
+      return Math.max(0, Math.round(amountNum * (rate / 100)));
+    } else {
+      return rules?.defaultReceiveFee ?? 5;
+    }
+  };
+
   const handleSourceLineChange = (newLineId: string) => {
     setSourceLineId(newLineId);
     setIsLineSwitcherOpen(false);
+    const line = lines.find((l) => l.id === newLineId);
+    const num = Number(amount);
+    if (!isNaN(num) && num > 0) {
+      if (operationMode === 'transfer') {
+        const autoComm = calculateProviderCommission(num, line, destinationBankOrWallet, recipientNumber, telecomRules);
+        setCommission(toEnglishDigits(autoComm.toString()));
+      } else {
+        const autoFee = computeReceiveFee(num, telecomRules);
+        setFee(toEnglishDigits(autoFee.toString()));
+        setCommission('0');
+      }
+    }
   };
 
   const selectedLine = lines.find((l) => l.id === sourceLineId);
 
-  // Auto fee calculation based on amount: 1% as shown in reference (12000 -> 120 EGP), editable manually, strictly English digits
+  // Auto commission calculation based on telecom operator rules or receive settings, editable manually, strictly English digits
   const handleAmountChange = (val: string) => {
     const englishVal = toEnglishDigits(val).replace(/[^\d]/g, '');
     setAmount(englishVal);
     const num = Number(englishVal);
     if (!isNaN(num) && num > 0) {
-      // Auto-compute commission at 1% (e.g., 12000 -> 120 EGP)
-      const computedFee = Math.max(0, Math.round(num * 0.01));
-      setFee(toEnglishDigits(computedFee.toString()));
+      if (operationMode === 'receive') {
+        // Auto-fill receive commission from settings, strictly English digits
+        const autoFee = computeReceiveFee(num, telecomRules);
+        setFee(toEnglishDigits(autoFee.toString()));
+        setCommission('0');
+      } else {
+        const autoComm = calculateProviderCommission(num, selectedLine, destinationBankOrWallet, recipientNumber, telecomRules);
+        setCommission(toEnglishDigits(autoComm.toString()));
+      }
     } else {
-      setFee('0');
+      if (operationMode === 'receive') {
+        setFee('0');
+      }
+      setCommission('0');
     }
   };
 
@@ -190,17 +382,28 @@ export const NewTransferView: React.FC<NewTransferViewProps> = ({
     setRecipientNumber(englishDigits);
 
     // Auto-select telecom provider as soon as 3 digits are entered!
+    let targetDest = destinationBankOrWallet;
     if (englishDigits.length >= 3) {
       const prefix = englishDigits.slice(0, 3);
       if (prefix === '010') {
+        targetDest = 'فودافون كاش';
         setDestinationBankOrWallet('فودافون كاش');
       } else if (prefix === '011') {
+        targetDest = 'اتصالات كاش';
         setDestinationBankOrWallet('اتصالات كاش');
       } else if (prefix === '012') {
+        targetDest = 'أورنج كاش';
         setDestinationBankOrWallet('أورنج كاش');
       } else if (prefix === '015') {
+        targetDest = 'وي باي';
         setDestinationBankOrWallet('وي باي');
       }
+    }
+
+    const num = Number(amount);
+    if (!isNaN(num) && num > 0 && operationMode === 'transfer') {
+      const autoComm = calculateProviderCommission(num, selectedLine, targetDest, englishDigits);
+      setCommission(toEnglishDigits(autoComm.toString()));
     }
   };
 
@@ -211,15 +414,16 @@ export const NewTransferView: React.FC<NewTransferViewProps> = ({
   };
 
   const numAmount = Number(amount) || 0;
+  const numCommission = Math.max(0, Number(commission) || 0);
   const numFee = Math.max(0, Number(fee) || 0);
-  const totalAmount = numAmount + numFee;
+  const totalAmount = isReceiving ? numAmount : (numAmount + numCommission + numFee);
 
   let limitWarning: string | null = null;
   let balanceWarning: string | null = null;
 
   if (selectedLine && numAmount > 0 && operationMode === 'transfer') {
     if (totalAmount > selectedLine.balance) {
-      balanceWarning = `الرصيد المتاح في الخط (${formatAmount(selectedLine.balance)} ج.م) غير كافٍ! المبلغ الإجمالي شامل الرسوم (${formatAmount(totalAmount)} ج.م) يتجاوز الرصيد الحالي.`;
+      balanceWarning = `الرصيد المتاح في الخط (${formatAmount(selectedLine.balance)} ج.م) غير كافٍ! المبلغ الإجمالي شامل العمولة والرسوم (${formatAmount(totalAmount)} ج.م) يتجاوز الرصيد الحالي.`;
     }
     const remainingDaily = selectedLine.remainingDaily ?? selectedLine.dailyLimit;
     if (totalAmount > remainingDaily) {
@@ -273,6 +477,7 @@ export const NewTransferView: React.FC<NewTransferViewProps> = ({
       recipientName: recipientName.trim() || (operationMode === 'receive' ? 'عميل مودع' : 'عميل نقدي'),
       destinationBankOrWallet,
       amount: numAmount,
+      commission: numCommission,
       fee: numFee,
       notes: '',
       idempotencyKey,
@@ -292,6 +497,7 @@ export const NewTransferView: React.FC<NewTransferViewProps> = ({
       recipientName: recipientName.trim() || (operationMode === 'receive' ? 'عميل مودع' : 'عميل نقدي'),
       destinationBankOrWallet,
       amount: numAmount,
+      commission: numCommission,
       fee: numFee,
       totalAmount,
       notes: '',
@@ -317,6 +523,7 @@ export const NewTransferView: React.FC<NewTransferViewProps> = ({
       setCreatedTransfer(res);
       loadLines();
       setAmount('');
+      setCommission('0');
       setRecipientNumber('');
       setRecipientName('');
       setPendingPayload(null);
@@ -341,8 +548,9 @@ export const NewTransferView: React.FC<NewTransferViewProps> = ({
     setRecipientNumber('');
     setRecipientName('');
     setAmount('');
-    setErrorMessage(null);
+    setCommission('0');
     setFee('0');
+    setErrorMessage(null);
   };
 
   const currentSnapshot = (): Partial<OperationSession> => ({
@@ -354,6 +562,7 @@ export const NewTransferView: React.FC<NewTransferViewProps> = ({
     recipientName,
     destinationBankOrWallet,
     amount,
+    commission,
     fee,
     overrideLimit,
   });
@@ -373,7 +582,6 @@ export const NewTransferView: React.FC<NewTransferViewProps> = ({
     return null;
   };
 
-  const isReceiving = operationMode === 'receive';
   const detectedNet = getDetectedNetworkName();
 
   const WALLET_CHANNELS = [
@@ -700,7 +908,13 @@ export const NewTransferView: React.FC<NewTransferViewProps> = ({
                         <button
                           key={channel}
                           type="button"
-                          onClick={() => setDestinationBankOrWallet(channel)}
+                          onClick={() => {
+                            setDestinationBankOrWallet(channel);
+                            if (numAmount > 0 && operationMode === 'transfer') {
+                              const autoComm = calculateProviderCommission(numAmount, selectedLine, channel, recipientNumber);
+                              setCommission(toEnglishDigits(autoComm.toString()));
+                            }
+                          }}
                           className={`text-[9.5px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-lg font-bold transition cursor-pointer border flex items-center gap-1 shadow-xs whitespace-nowrap shrink-0 ${
                             isSelected
                               ? isReceiving
@@ -722,7 +936,7 @@ export const NewTransferView: React.FC<NewTransferViewProps> = ({
               {/* Seamless Divider between Sections inside the Single Frame */}
               <div className="border-t border-slate-800/80 pt-0.5" />
 
-              {/* Part B: Financial Amounts & Fees */}
+              {/* Part B: Financial Amounts, Commission & Fees (Order: Amount -> Commission -> Fee) */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between pb-2 border-b border-slate-800">
                   <span className="text-[11px] font-bold text-slate-200 flex items-center gap-1.5">
@@ -731,84 +945,196 @@ export const NewTransferView: React.FC<NewTransferViewProps> = ({
                       {isReceiving ? 'المبلغ المالي المستلم وعمولة الخدمة:' : 'المبلغ المالي ورسوم التحويل:'}
                     </span>
                   </span>
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${
-                    isReceiving 
-                      ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' 
-                      : 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30'
-                  }`}>
+                  <span className="text-[10px] px-2.5 py-0.5 rounded-full font-bold border text-emerald-400 bg-emerald-500/10 border-emerald-500/30">
                     {isReceiving ? 'يُضاف للرصيد فوراً (+)' : 'رسوم التحويل: من 0 ج.م'}
                   </span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {/* Amount Input */}
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-300 mb-1">
-                      {isReceiving ? 'المبلغ المستلم المراد إيداعه (ج.م) *' : 'مبلغ التحويل المراد إرساله (ج.م) *'}
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        dir="ltr"
-                        lang="en"
-                        value={amount}
-                        onChange={(e) => handleAmountChange(e.target.value)}
-                        placeholder="0"
-                        className="w-full py-2 px-3 pl-9 bg-slate-950 border border-slate-700/80 rounded-xl text-lg font-bold font-mono text-emerald-400 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-inner text-right"
-                      />
-                      <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400 font-sans font-bold text-[11px]">
-                        ج.م
+                {/* If isReceiving: ONLY 2 Columns (Right: Amount, Left: Fee/Commission).
+                    If !isReceiving: 3 Columns (Right: Amount, Center: Commission, Left: Fee) */}
+                {isReceiving ? (
+                  /* 2 Columns Layout for Receive Mode: Exactly as specified by user */
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                    {/* 1. Right Column: المبلغ المستلم المراد إيداعه (ج.م) * */}
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-300 mb-1">
+                        المبلغ المستلم المراد إيداعه (ج.م) *
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          dir="ltr"
+                          lang="en"
+                          value={amount}
+                          onChange={(e) => handleAmountChange(e.target.value)}
+                          placeholder="0"
+                          className="w-full py-2 px-3 pl-9 bg-slate-950 border border-slate-700/80 rounded-xl text-lg font-bold font-mono text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-inner text-right"
+                        />
+                        <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400 font-sans font-bold text-[11px]">
+                          ج.م
+                        </div>
                       </div>
-                    </div>
-                    {isReceiving && (
                       <span className="text-[10px] text-emerald-400 block mt-1">
                         ✓ سيتم زيادة رصيد المحفظة المستلمة بهذا المبلغ فوراً
                       </span>
-                    )}
-                  </div>
+                    </div>
 
-                  {/* Fee / Commission Input */}
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="text-[11px] font-semibold text-slate-300">
-                        {isReceiving ? 'عمولة الاستلام / الخدمة (ج.م)' : 'رسوم التحويل (ج.م)'}
-                      </label>
-                      <span className="text-[10px] text-slate-400">
-                        {isReceiving ? 'عمولة المحل/المكتب (أرباح)' : 'تُخصم من المحفظة المصدر'}
+                    {/* 2. Left Column: عمولة الاستلام / الخدمة (ج.م) - Auto populated from settings, editable manually, strictly English digits */}
+                    <div>
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <Coins className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                        <label className="text-[11px] font-bold text-slate-300">
+                          عمولة الاستلام / الخدمة (ج.م)
+                        </label>
+                        <span className="text-[9.5px] px-1.5 py-0.2 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold mr-auto">
+                          تلقائية / قابلة للتعديل
+                        </span>
+                      </div>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          dir="ltr"
+                          lang="en"
+                          value={fee}
+                          onChange={(e) => {
+                            const englishVal = toEnglishDigits(e.target.value).replace(/[^\d.]/g, '');
+                            setFee(englishVal);
+                          }}
+                          onBlur={() => {
+                            const num = Number(fee);
+                            if (isNaN(num) || num < 0) {
+                              setFee('0');
+                            }
+                          }}
+                          placeholder="0"
+                          className="w-full py-2 px-3 pl-9 bg-emerald-500/10 border border-emerald-500/40 rounded-xl text-lg font-bold font-mono text-emerald-400 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-inner text-right"
+                        />
+                        <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400 font-sans font-bold text-[11px]">
+                          ج.م
+                        </div>
+                      </div>
+                      <span className="text-[9.5px] text-slate-400 block mt-1">
+                        إجمالي المحصل: <span className="font-mono font-bold text-slate-200">{formatAmount(numAmount + numFee)}</span> ج.م
                       </span>
                     </div>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        dir="ltr"
-                        lang="en"
-                        value={fee}
-                        onChange={(e) => {
-                          const englishVal = toEnglishDigits(e.target.value).replace(/[^\d]/g, '');
-                          setFee(englishVal);
-                        }}
-                        onBlur={() => {
-                          const num = Number(fee);
-                          if (isNaN(num) || num < 0) {
-                            setFee('0');
-                          }
-                        }}
-                        placeholder="0"
-                        className="w-full py-2 px-3 pl-9 bg-slate-950 border border-slate-700/80 rounded-xl text-lg font-bold font-mono text-amber-400 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-amber-500 shadow-inner text-right"
-                      />
-                      <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400 font-sans font-bold text-[11px]">
-                        ج.م
+                  </div>
+                ) : (
+                  /* 3 Columns Layout matching user attachment image_545c0449.png:
+                      In RTL: Right is Amount, Center is Commission, Left is Fee */
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 sm:gap-3">
+                    
+                    {/* 1. Right Column: Transfer Amount (مبلغ التحويل المراد إرساله) */}
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-300 mb-1">
+                        مبلغ التحويل المراد إرساله (ج.م) *
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          dir="ltr"
+                          lang="en"
+                          value={amount}
+                          onChange={(e) => handleAmountChange(e.target.value)}
+                          placeholder="0"
+                          className="w-full py-2 px-3 pl-9 bg-slate-950 border border-slate-700/80 rounded-xl text-lg font-bold font-mono text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-inner text-right"
+                        />
+                        <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400 font-sans font-bold text-[11px]">
+                          ج.م
+                        </div>
+                      </div>
+                      {(selectedLine?.provider === 'vodafone' || selectedLine?.provider === 'vodafone_vip') && numAmount > 0 && numAmount < 5 && (
+                        <span className="text-[10px] text-amber-400 block mt-1">
+                          * الحد الأدنى لفودافون كاش: 5 ج.م
+                        </span>
+                      )}
+                    </div>
+
+                    {/* 2. Center Column: Transfer Commission (عمولة التحويل) with % Green Badge */}
+                    <div>
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <span className="w-4 h-4 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px] font-black shrink-0 shadow-xs">
+                          %
+                        </span>
+                        <label className="text-[11px] font-bold text-slate-300">
+                          عمولة التحويل (ج.م)
+                        </label>
+                      </div>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          dir="ltr"
+                          lang="en"
+                          value={commission}
+                          onChange={(e) => {
+                            const englishVal = toEnglishDigits(e.target.value).replace(/[^\d.]/g, '');
+                            setCommission(englishVal);
+                          }}
+                          onBlur={() => {
+                            const num = Number(commission);
+                            if (isNaN(num) || num < 0) {
+                              setCommission('0');
+                            }
+                          }}
+                          placeholder="0"
+                          className="w-full py-2 px-3 pl-9 bg-emerald-500/10 border border-emerald-500/40 rounded-xl text-lg font-bold font-mono text-emerald-400 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-inner text-right"
+                        />
+                        <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400 font-sans font-bold text-[11px]">
+                          ج.م
+                        </div>
+                      </div>
+                      <div className="mt-1 flex items-center justify-between text-[9.5px] text-slate-400">
+                        <span>
+                          {numAmount <= 2000 && (selectedLine?.monthCount === 0 || !selectedLine?.monthCount)
+                            ? 'أول معاملة بالشهر مجاناً (0 ج.م)'
+                            : 'عمولة المشغل (تلقائية)'}
+                        </span>
+                        <span className="font-mono text-emerald-400 font-bold">{commission || '0'} ج.م</span>
                       </div>
                     </div>
-                    {isReceiving && (
-                      <span className="text-[10px] text-slate-400 block mt-1">
-                        إجمالي المحصل من العميل: {formatAmount(numAmount + numFee)} ج.م
+
+                    {/* 3. Left Column: Transfer Fee (رسوم التحويل) with Coins Icon */}
+                    <div>
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <Coins className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <label className="text-[11px] font-bold text-slate-300">
+                          رسوم التحويل (ج.م)
+                        </label>
+                      </div>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          dir="ltr"
+                          lang="en"
+                          value={fee}
+                          onChange={(e) => {
+                            const englishVal = toEnglishDigits(e.target.value).replace(/[^\d]/g, '');
+                            setFee(englishVal);
+                          }}
+                          onBlur={() => {
+                            const num = Number(fee);
+                            if (isNaN(num) || num < 0) {
+                              setFee('0');
+                            }
+                          }}
+                          placeholder="0"
+                          className="w-full py-2 px-3 pl-9 bg-slate-950 border border-slate-700/80 rounded-xl text-lg font-bold font-mono text-amber-400 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-amber-500 shadow-inner text-right"
+                        />
+                        <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400 font-sans font-bold text-[11px]">
+                          ج.م
+                        </div>
+                      </div>
+                      <span className="text-[9.5px] text-slate-400 block mt-1">
+                        إجمالي الخصم: <span className="font-mono font-bold text-slate-200">{formatAmount(totalAmount)}</span> ج.م
                       </span>
-                    )}
+                    </div>
+
                   </div>
-                </div>
+                )}
               </div>
 
             </div>

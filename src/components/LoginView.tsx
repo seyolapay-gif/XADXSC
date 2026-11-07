@@ -23,7 +23,7 @@ import { useTheme } from '../context/ThemeContext';
 export const LoginView: React.FC = () => {
   const { login } = useAuth();
   const { isDark } = useTheme();
-  const [username, setUsername] = useState('8Adel');
+  const [username, setUsername] = useState('Adel');
   const [password, setPassword] = useState('ZXb01121');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
@@ -89,8 +89,8 @@ export const LoginView: React.FC = () => {
         isDark ? 'border-slate-800/80 bg-slate-900/80' : 'border-slate-200 bg-white/90 shadow-xs'
       }`}>
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white shadow-md shadow-emerald-500/20">
-            <ShieldCheck className="w-4 h-4" />
+          <div className="w-8 h-8 rounded-xl bg-slate-800 border border-slate-700/80 flex items-center justify-center p-1 shadow-md shadow-emerald-500/10">
+            <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
           </div>
           <div>
             <span className={`text-xs sm:text-sm font-extrabold block ${isDark ? 'text-white' : 'text-slate-900'}`}>نظام إدارة الكاش والمحافظ المصرية</span>
@@ -136,8 +136,8 @@ export const LoginView: React.FC = () => {
             <div>
               {/* Header / Brand */}
               <div className="flex flex-col items-center sm:items-start text-center sm:text-right mb-8">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-600 to-cyan-500 flex items-center justify-center shadow-lg shadow-emerald-500/20 mb-4">
-                  <ShieldCheck className="w-8 h-8 text-white" />
+                <div className="w-16 h-16 rounded-2xl bg-slate-800/80 border border-slate-700/80 flex items-center justify-center p-2 shadow-lg shadow-emerald-500/10 mb-4">
+                  <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
                 </div>
                 <h1 className={`text-2xl sm:text-3xl font-extrabold tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
                   إدارة التحويلات المالية
@@ -185,7 +185,7 @@ export const LoginView: React.FC = () => {
                       onChange={(e) => setUsername(e.target.value)}
                       required
                       disabled={isLoading}
-                      placeholder="مثال: admin"
+                      placeholder="مثال: Adel"
                       className={`w-full pr-11 pl-4 py-3 rounded-xl transition text-sm font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 ${
                         isDark 
                           ? 'bg-slate-950/80 border border-slate-700/80 text-slate-100 placeholder:text-slate-500' 

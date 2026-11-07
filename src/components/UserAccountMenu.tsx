@@ -210,7 +210,7 @@ export const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
   const userInitial = user?.fullName?.charAt(0) || 'أ';
 
   return (
-    <div className="relative" ref={menuContainerRef} dir="rtl">
+    <div className="relative z-50" ref={menuContainerRef} dir="rtl">
       {/* =========================================================================
        * Trigger Button: Profile Avatar at the Extreme Far Left of Header
        * ========================================================================= */}
@@ -267,14 +267,15 @@ export const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
 
       {/* =========================================================================
        * Compact Notification-Sized Popup Menu with Harmonious Cairo Typography
+       * Elevated above everything with z-[100] and deep shadow
        * ========================================================================= */}
       {isOpen && (
         <div 
           className={`absolute left-0 top-full mt-2 w-64 sm:w-[264px] ${
             isDark 
-              ? 'bg-slate-900 text-slate-100 border-slate-700/80 shadow-2xl shadow-black/60' 
-              : 'bg-white text-slate-800 border-slate-200/90 shadow-xl shadow-slate-200/60'
-          } rounded-2xl z-50 flex flex-col overflow-hidden border backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150 transition-colors font-sans`}
+              ? 'bg-slate-900 text-slate-100 border-slate-700/80 shadow-2xl shadow-black/80' 
+              : 'bg-white text-slate-800 border-slate-200/90 shadow-2xl shadow-slate-900/30'
+          } rounded-2xl z-[100] flex flex-col overflow-hidden border backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150 transition-colors font-sans`}
           style={{ fontFamily: "'Cairo', -apple-system, sans-serif" }}
         >
           {/* -------------------------------------------------------------

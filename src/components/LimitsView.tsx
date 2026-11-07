@@ -44,6 +44,9 @@ export const LimitsView: React.FC = () => {
 
   useEffect(() => {
     loadData();
+    const handleGlobalRefresh = () => loadData();
+    window.addEventListener('app:global-refresh', handleGlobalRefresh);
+    return () => window.removeEventListener('app:global-refresh', handleGlobalRefresh);
   }, []);
 
   const handleStartEdit = (line: CashLine) => {
@@ -89,14 +92,6 @@ export const LimitsView: React.FC = () => {
             متابعة فورية لاستهلاك حدود شركات الاتصالات والمحافظ الإلكترونية، ومنع تجاوز السقف المالي المحدد
           </p>
         </div>
-
-        <button
-          onClick={() => loadData()}
-          className="p-2.5 bg-slate-800/80 hover:bg-slate-700 text-slate-300 rounded-xl transition border border-slate-700/60"
-          title="تحديث البيانات"
-        >
-          <RefreshCw className="w-4 h-4" />
-        </button>
       </div>
 
       {/* Equations & Aggregated Cap Summary Cards */}

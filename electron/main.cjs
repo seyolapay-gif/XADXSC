@@ -44,6 +44,7 @@ function createWindow() {
     minWidth: 720,
     minHeight: 480,
     title: 'نظام إدارة التحويلات المالية الذكي',
+    icon: path.join(__dirname, '..', 'public', 'icon.png'),
     backgroundColor: '#020617',
     webPreferences: {
       nodeIntegration: false,

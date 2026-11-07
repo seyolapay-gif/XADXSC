@@ -13,7 +13,7 @@ export const ThemeToggleButton: React.FC<ThemeToggleButtonProps> = ({ className 
     <button
       type="button"
       onClick={toggleTheme}
-      className={`p-2 sm:p-2.5 rounded-xl transition cursor-pointer flex items-center justify-center shrink-0 ${
+      className={`w-9 h-9 rounded-xl transition cursor-pointer flex items-center justify-center shrink-0 ${
         isDark 
           ? 'bg-slate-800/80 hover:bg-slate-700 text-amber-400 border border-slate-700/60' 
           : 'bg-white hover:bg-slate-100 text-amber-500 border border-slate-300 shadow-xs'

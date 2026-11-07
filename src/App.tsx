@@ -16,6 +16,7 @@ import { AuditLogView } from './components/AuditLogView';
 import { BackupRestoreView } from './components/BackupRestoreView';
 import { VaultsManagementView } from './components/VaultsManagementView';
 import { ShiftHandoverView } from './components/ShiftHandoverView';
+import { AdminControlPanelView } from './components/AdminControlPanelView';
 import { ReceiptModal } from './components/ReceiptModal';
 import { TransferDetailsModal } from './components/TransferDetailsModal';
 import { OperationSuccessModal } from './components/OperationSuccessModal';
@@ -100,6 +101,18 @@ const MainAppContent: React.FC = () => {
   const [selectedDetailsTransfer, setSelectedDetailsTransfer] = useState<Transfer | null>(null);
   const [transferMode, setTransferMode] = useState<'transfer' | 'receive'>('transfer');
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+  const [isGlobalRefreshing, setIsGlobalRefreshing] = useState(false);
+
+  const handleGlobalRefresh = async () => {
+    setIsGlobalRefreshing(true);
+    try {
+      await api.getSettings().then(setSettings).catch(() => {});
+    } finally {
+      setTimeout(() => {
+        setIsGlobalRefreshing(false);
+      }, 600);
+    }
+  };
 
   // Multi-Operation Sessions state (support > 2 concurrent operations)
   const [sessionsCounter, setSessionsCounter] = useState(1);
@@ -300,6 +313,8 @@ const MainAppContent: React.FC = () => {
       }}
       onOpenNewTransfer={() => handleOpenNewTransfer()}
       onOpenReceiveMoney={() => handleOpenReceiveMoney()}
+      onRefresh={handleGlobalRefresh}
+      isRefreshing={isGlobalRefreshing}
     >
       <TabErrorBoundary key={currentTab}>
         {currentTab === 'dashboard' && (
@@ -350,6 +365,10 @@ const MainAppContent: React.FC = () => {
           />
         )}
 
+        {currentTab === 'reconciliation' && (
+          <SettingsView initialTab="reconciliation" />
+        )}
+
         {currentTab === 'vaults' && user && (
           <VaultsManagementView currentUser={user} settings={settings} />
         )}
@@ -369,6 +388,10 @@ const MainAppContent: React.FC = () => {
         {currentTab === 'audit' && <AuditLogView />}
 
         {currentTab === 'backup' && <BackupRestoreView />}
+
+        {currentTab === 'admin_control' && user?.role === 'admin' && (
+          <AdminControlPanelView />
+        )}
       </TabErrorBoundary>
 
       {/* Docked Minimized Operations Bar at Bottom */}

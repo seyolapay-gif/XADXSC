@@ -548,4 +548,31 @@ html.light .bg-blue-500\/15 svg {
   color: #1d4ed8 !important;
 }
 
+/* =========================================================================
+ * Top Bar Total Project Available Funds (Finest Emerald Green Styling)
+ * ========================================================================= */
+.project-funds-badge {
+  background-color: #ecfdf5 !important;
+  border: 1.5px solid #6ee7b7 !important;
+}
+html.dark .project-funds-badge {
+  background-color: rgba(6, 78, 59, 0.7) !important;
+  border: 1.5px solid rgba(52, 211, 153, 0.5) !important;
+}
+
+.project-funds-number {
+  color: #059669 !important;
+}
+html.dark .project-funds-number {
+  color: #34d399 !important;
+}
+
+.project-funds-currency {
+  color: #047857 !important;
+}
+html.dark .project-funds-currency {
+  color: #6ee7b7 !important;
+}
+
+
 

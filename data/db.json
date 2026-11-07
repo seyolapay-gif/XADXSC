@@ -2,54 +2,15 @@
   "users": [
     {
       "id": "usr_admin",
-      "username": "8Adel",
+      "username": "Adel",
       "fullName": "عادل فتحي",
       "role": "admin",
       "passwordHash": "43484a1eca0e548819b3329a0122d1f93bd9c442d23610a5482ed3cc15f015a1719650f693f82627902ad4c34430e8b5ceab6bbba5d9e644b9c3c0db45b1e701",
       "salt": "580bc72556edee08d64ef714a56de752",
       "isActive": true,
+      "avatarUrl": "/assets/aistudio/WhatsApp_Image_2026-10-27_at_1.08.31_PM_a0efef56.jpeg",
       "createdAt": "2026-10-13T00:44:36.199Z",
-      "lastLogin": "2026-10-26T12:16:00.510Z"
-    },
-    {
-      "id": "usr_ops",
-      "username": "operations",
-      "fullName": "محمود السيد",
-      "role": "operations",
-      "passwordHash": "a4f297172a42ae353bd842784a6fefe62212aadc53cefd494b40fa3ef1b3f6befa7811eec190df17956970592fc0646081aa29b51c5067aedd0be520e0ca013a",
-      "salt": "734be675f2d8662a1ce4dbfd3e2faa45",
-      "isActive": true,
-      "createdAt": "2026-10-13T00:44:36.199Z"
-    },
-    {
-      "id": "usr_acc",
-      "username": "accountant",
-      "fullName": "سارة إبراهيم",
-      "role": "accountant",
-      "passwordHash": "58cda2c2eb821cc8010b4c602ca9ef98d3697ca53494da39a3af39137a01692ed94cabfe584864717565ddf9be5a9bef59e586951d080f73195a03f976fc0e4e",
-      "salt": "7a3ca1f27b435f07ff2998bd11088459",
-      "isActive": true,
-      "createdAt": "2026-10-13T00:44:36.199Z"
-    },
-    {
-      "id": "usr_agent",
-      "username": "agent",
-      "fullName": "كريم عادل",
-      "role": "agent",
-      "passwordHash": "f1b194c5d826a4faa3f531f055fa06e799d136773d2770e27277eb3352af09fb89aaec1d39fb8a1fa9aea21375c76551bb056c7d03a53ef3af97c2230ea09246",
-      "salt": "f01fb4e79f5674f7eeba065566c6445f",
-      "isActive": true,
-      "createdAt": "2026-10-13T00:44:36.199Z"
-    },
-    {
-      "id": "usr_viewer",
-      "username": "viewer",
-      "fullName": "منى حسن",
-      "role": "viewer",
-      "passwordHash": "fb774ea3528be0a4d4fea614e5b259beadaf77ce9761a348dddb915ca36ad558274f3be011863967f9046cdf0535b03418470f89421dcfe7c2cb0e57fb22d7d4",
-      "salt": "295bfa21caa0c8f62c8c450ea14813ad",
-      "isActive": true,
-      "createdAt": "2026-10-13T00:44:36.199Z"
+      "lastLogin": "2026-11-07T13:07:24.216Z"
     }
   ],
   "cashLines": [
@@ -1160,6 +1121,33 @@
   ],
   "auditLogs": [
     {
+      "id": "aud_1794056844217_ss2j",
+      "timestamp": "2026-11-07T13:07:24.217Z",
+      "operatorId": "usr_admin",
+      "operatorName": "عادل فتحي",
+      "action": "تسجيل دخول",
+      "details": "دخول المستخدم بنجاح إلى النظام",
+      "ipAddress": "127.0.0.1"
+    },
+    {
+      "id": "aud_1794047061453_ao6n",
+      "timestamp": "2026-11-07T10:24:21.453Z",
+      "operatorId": "usr_admin",
+      "operatorName": "عادل فتحي",
+      "action": "تسجيل دخول",
+      "details": "دخول المستخدم بنجاح إلى النظام",
+      "ipAddress": "127.0.0.1"
+    },
+    {
+      "id": "aud_1793096871751_fhf0",
+      "timestamp": "2026-10-27T10:27:51.751Z",
+      "operatorId": "usr_admin",
+      "operatorName": "عادل فتحي",
+      "action": "تسجيل دخول",
+      "details": "دخول المستخدم بنجاح إلى النظام",
+      "ipAddress": "127.0.0.1"
+    },
+    {
       "id": "aud_1793016960510_3fb7",
       "timestamp": "2026-10-26T12:16:00.510Z",
       "operatorId": "usr_admin",
@@ -1364,8 +1352,8 @@
       "type": "sub",
       "balance": 450000,
       "branch": "فرع المهندسين",
-      "assignedEmployeeId": "usr_ops",
-      "assignedEmployeeName": "محمود السيد",
+      "assignedEmployeeId": "usr_admin",
+      "assignedEmployeeName": "عادل فتحي",
       "status": "active",
       "minBalance": 50000,
       "maxBalance": 1000000,
@@ -1385,8 +1373,8 @@
       "type": "sub",
       "balance": 300000,
       "branch": "فرع مدينة نصر",
-      "assignedEmployeeId": "usr_agent",
-      "assignedEmployeeName": "كريم عادل",
+      "assignedEmployeeId": "usr_admin",
+      "assignedEmployeeName": "عادل فتحي",
       "status": "active",
       "minBalance": 30000,
       "maxBalance": 800000,
@@ -1528,5 +1516,6 @@
       "createdAt": "2026-10-26T08:00:00Z",
       "updatedAt": "2026-10-26T08:10:00Z"
     }
-  ]
+  ],
+  "reconciliations": []
 }
